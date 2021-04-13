@@ -1,0 +1,25 @@
+# This file should be placed here:
+#    /usr/share/matplotlib/mpl-data/stylelib/mydark.mplstyle
+
+
+# axes
+axes.grid            : True    # display grid or not
+axes.labelsize      : large  # fontsize of the x any y labels
+# axes.labelcolor: e0e0e0
+# axes.facecolor: black
+# xtick.color: e0e0e0
+# ytick.color: e0e0e0
+# axes.edgecolor: e0e0e0
+
+# lines
+lines.linewidth   : 2.5     # line width in points
+axes.prop_cycle    : (cycler('linestyle', ['-', '--']) * cycler('color', ['1F77B4', 'FF7F0E', '2CA02C', 'D62728', '9467BD', '8C564B', 'E377C2', '98A4AB', 'BCBD22', '17BECF']) )
+
+# text
+font.family         : serif
+font.size           : 15.0
+mathtext.rm  : serif
+mathtext.fontset : cm #dejavusans # Should be 'dejavusans' (default),
+figure.figsize   : 9.6, 7.2   # figure size in inches
+figure.dpi       : 150      # figure dots per inch
+# text.color: black #e0e0e0
