@@ -15,9 +15,13 @@ import matplotlib.patheffects as PathEffects
 from matplotlib.colors import LightSource, BoundaryNorm
 
 ## Dark Theme ###################################################################
-#  import matplotlib as mpl
+import matplotlib as mpl
 #  COLOR = 'black'
 #  ROLOC = '#e0e0e0'
+mpl.rcParams['axes.facecolor'] = (1,1,1,0)
+mpl.rcParams['figure.facecolor'] = (1,1,1,0)
+mpl.rcParams["savefig.facecolor"] = (1,1,1,0)
+
 #  mpl.rcParams['text.color'] = ROLOC #COLOR
 #  mpl.rcParams['axes.labelcolor'] = COLOR
 #  mpl.rcParams['axes.facecolor'] = COLOR #'black'
@@ -29,15 +33,19 @@ from matplotlib.colors import LightSource, BoundaryNorm
 #################################################################################
 
 
-def setup_plot(ref_lat,ref_lon,left,right,bottom,top):
+def setup_plot(ref_lat,ref_lon,left,right,bottom,top,transparent=True):
    orto = ccrs.PlateCarree()
    projection = ccrs.LambertConformal(ref_lon,ref_lat)
    # projection = ccrs.RotatedPole(pole_longitude=-150, pole_latitude=37.5)
 
    extent = left, right, bottom, top
    fig = plt.figure(figsize=(11,9)) #, frameon=False)
-   ax = plt.axes(projection=projection)
+   # ax = plt.axes(projection=projection)
+   ax = fig.add_axes([0,0,0.99,1],projection=projection)
    ax.set_extent(extent, crs=orto)
+   if transparent:
+       # ax.outline_patch.set_visible(False)
+       ax.background_patch.set_visible(False)
    return fig,ax,orto
 
 
@@ -88,12 +96,17 @@ def scalar_plot(fig,ax,orto, lons,lats,prop, delta,vmin,vmax,cmap,levels=[]):
    if len(levels) > 0:
       norm = BoundaryNorm(levels,len(levels))
    else:
-      levels = None # np.arange(vmin,vmax,delta)
+      levels = np.arange(vmin,vmax,delta)
       norm = None
-   ax.contourf(lons,lats,prop, levels=levels, extend='max',
-                               antialiased=True, norm=norm,
-                               cmap=cmap, vmin=vmin, vmax=vmax,
-                               alpha=0.5, transform=orto)
+   C = ax.contourf(lons,lats,prop, levels=levels, extend='max',
+                                   antialiased=True, norm=norm,
+                                   cmap=cmap, vmin=vmin, vmax=vmax,
+                                   zorder=10, transform=orto)
+   # cbaxes = fig.add_axes([0., -0.05, 0.999, 0.03]) 
+   # fig.colorbar(C, cax=cbaxes,orientation="horizontal")
+   # cbaxes.set_xlabel('test')
+   # return C, cbaxes
+   return C
 
 def vector_plot(fig,ax,orto,lons,lats,U,V, dens=1.5,color=(0,0,0,0.75)):
    x = lons[0,:].values
@@ -102,6 +115,30 @@ def vector_plot(fig,ax,orto,lons,lats,U,V, dens=1.5,color=(0,0,0,0.75)):
                            arrowstyle='->',arrowsize=2.5,
                            zorder=11,
                            transform=orto)
+
+
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+def plot_colorbar(cmap,delta=4,vmin=0,vmax=60,levels=None,name='cbar',
+                                        units='',fs=18,norm=None,extend='max'):
+   fig, ax = plt.subplots()
+   img = np.random.uniform(vmin,vmax,size=(40,40))
+   if len(levels) == 0:
+      levels=np.arange(vmin,vmax,delta)
+   img = ax.contourf(img, levels=levels,
+                          extend=extend,
+                          antialiased=True,
+                          cmap=cmap,
+                          norm=norm,
+                          vmin=vmin, vmax=vmax)
+   plt.gca().set_visible(False)
+   divider = make_axes_locatable(ax)
+   cax = divider.new_vertical(size="2.95%", pad=0.25, pack_start=True)
+   fig.add_axes(cax)
+   cbar = fig.colorbar(img, cax=cax, orientation="horizontal")
+   cbar.ax.set_xlabel(units,fontsize=fs)
+   fig.savefig(f'{name}.png', transparent=True,
+                              bbox_inches='tight', pad_inches=0)
 
 
 def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,show=False):

@@ -16,7 +16,7 @@ import json
 
 class RunParams(object):
    def __init__(self, start_date, end_date, daily_hours,
-                      domains, domain_folder, GFS_data_folder,
+                      domains, domain_folder, GFS_data_folder,output_folder,
                       leftlon, rightlon, toplat, bottomlat,
                       Ncores):
       UTCshift = dt.datetime.now() - dt.datetime.utcnow()
@@ -35,6 +35,9 @@ class RunParams(object):
       self.GFS_data_folder = GFS_data_folder
       com = f'mkdir -p {self.GFS_data_folder}'
       LG.info(f'creating folder {self.GFS_data_folder}')
+      self.output_folder = output_folder
+      com = f'mkdir -p {self.output_folder}'
+      LG.info(f'creating folder {self.output_folder}')
       os.system(com)
       self.leftlon   = leftlon
       self.rightlon  = rightlon
@@ -128,6 +131,7 @@ def load(fname='config.ini'):
    domains_run = tuple(map(int,config['run']['domains'].split(',')))
    domain_folder = expanduser(config['run']['domain_folder'])
    GFS_data_folder = expanduser(config['run']['GFS_data_folder'])
+   output_folder = expanduser(config['run']['output_folder'])
    leftlon   = float(config['run']['leftlon'])
    rightlon  = float(config['run']['rightlon'])
    toplat    = float(config['run']['toplat'])
@@ -137,7 +141,7 @@ def load(fname='config.ini'):
    Ncores = int(config['run']['Ncores'])
 
    R = RunParams(start_date, end_date, hours_mask,
-                 domains_run, domain_folder, GFS_data_folder,
+                 domains_run, domain_folder, GFS_data_folder,output_folder,
                  leftlon, rightlon, toplat, bottomlat,
                  Ncores)
 

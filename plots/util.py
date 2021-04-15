@@ -1,0 +1,144 @@
+#!/usr/bin/python3
+# -*- coding: UTF-8 -*-
+
+# Recompile DrJack's Fortran if necessary
+import os
+diff = os.popen('diff drjack.f90 .drjack.f90').read().strip()
+if len(diff) > 0:
+   os.system('f2py3 -c -m drjack drjack.f90 && cp drjack.f90 .drjack.f90')
+else: print('Already compiled')
+import drjack
+
+import wrf
+import plot_functions as PF   # My plotting functions
+
+
+def calc_wblmaxmin(linfo, wa, heights, terrain, bldepth):
+   """
+   Wrapper for DrJack's transposes
+   """
+   wblmaxmin = drjack.calc_wblmaxmin(linfo, wa.transpose(),
+                                            heights.transpose(),
+                                            terrain.transpose(),
+                                            bldepth.transpose())
+   return wblmaxmin.transpose()
+
+def calc_wstar( hfx, bldepth ):
+   return drjack.calc_wstar( hfx.transpose(), bldepth.transpose() ).transpose()
+
+def calc_blcloudbase( qcloud,  heights, terrain, bldepth, cwbasecriteria,
+                                                       maxcwbasem, laglcwbase):
+   blcwbase = drjack.calc_blcloudbase( qcloud.transpose(),
+                                       heights.transpose(),
+                                       terrain.transpose(),
+                                       bldepth.transpose(),
+                                       cwbasecriteria, maxcwbasem, laglcwbase)
+   return blcwbase.transpose()
+
+def calc_hcrit( wstar, terrain, bldepth):
+   hcrit = drjack.calc_hcrit( wstar.transpose(), terrain.transpose(),
+                              bldepth.transpose() )
+   return hcrit.transpose()
+
+def calc_blclheight(qvapor,heights,terrain,bldepth,pmb,tc):
+   qvapor = qvapor.transpose()
+   heights = heights.transpose()
+   terrain = terrain.transpose()
+   bldepth = bldepth.transpose()
+   pmb = pmb.transpose()
+   tc = tc.transpose()
+   qvaporblavg = drjack.calc_blavg( qvapor, heights, terrain, bldepth)
+   # pmb=var = 0.01*(p.values+pb.values) # press is vertical coordinate in mb
+   zblcl = drjack.calc_blclheight( pmb, tc, qvaporblavg, heights, terrain,
+                                   bldepth )
+   return zblcl.transpose()
+
+
+def calc_sfclclheight( pressure, tc, td, heights, terrain, bldepth):
+   # Cu Cloudbase ~I~where Cu Potential > 0~P~
+   zsfclcl = drjack.calc_sfclclheight( pressure.transpose(),
+                                       tc.transpose(), td.transpose(),
+                                       heights.transpose(),
+                                       terrain.transpose(),
+                                       bldepth.transpose() )
+   return zsfclcl.transpose()
+
+def calc_blavg(X, heights,terrain,bldepth):
+   Xblavgwind = drjack.calc_blavg(X.transpose(), heights.transpose(),
+                                                 terrain.transpose(),
+                                                 bldepth.transpose())
+   return Xblavgwind.transpose()
+
+def calc_bltopwind(uEW,vNS,heights,terrain,bldepth):
+   utop,vtop = drjack.calc_bltopwind(uEW.transpose(),
+                                     vNS.transpose(),
+                                     heights.transpose(),
+                                     terrain.transpose(),
+                                     bldepth.transpose())
+   return utop.transpose(), vtop.transpose()
+
+
+
+def sounding(lat,lon,date,ncfile,pressure,tc,td,t0,ua,va,fout='sounding.png'):
+               # ,UTCshift=dt.timedelta(days=0),fout='sounding.png'):
+   """
+   lat,lon: spatial coordinates for the sounding
+   date: UTC date-time for the sounding
+   ncfile: ntcd4 Dataset from the WRF output
+   tc: Model temperature in celsius
+   tdc: Model dew temperature in celsius
+   t0: Model temperature 2m above ground
+   ua: Model X wind (m/s)
+   va: Model Y wind (m/s)
+   fout: save fig name
+   """
+   j,i = wrf.ll_to_xy(ncfile, lat, lon)
+   # Get sounding data for specific location
+   # h = heights[:,i,j]
+   p = pressure[:,i,j]
+   tc = tc[:,i,j]
+   tdc = td[:,i,j]
+   t0 = t0[i,j]
+   u = ua[:,i,j]
+   v = va[:,i,j]
+
+   fig,ax = PF.skewt_plot(p,tc,tdc,t0,date,u,v,show=False)
+   fig.savefig(fout)
+
+
+def cross_path(start,end):
+# start = 41.260096661378306, -3.6981749563104716
+# end = 40.78691893349439, -3.6903966736445306
+# cross_path(start,end)
+   start = wrf.ll_to_xy(ncfile, start[0], start[1])
+   end = wrf.ll_to_xy(ncfile, end[0], end[1])
+
+   start_point = wrf.CoordPair(x=start[0], y=start[1])
+   end_point   = wrf.CoordPair(x=end[0], y=end[1])
+
+   levels = np.linspace(900,3000,100)
+   p_vert = wrf.vertcross(wspd, heights, start_point=start_point,
+                                         end_point=end_point,
+                                         levels=levels,
+                                         latlon=True)
+   fig, ax = plt.subplots()
+   dx = 0,p_vert.shape[1]
+   ax.imshow(p_vert,origin='lower',extent=[*dx,900,3000])
+   ax.set_aspect(1/100)
+   ax.set_title('Wind speed')
+   fig.tight_layout()
+   plt.show()
+
+
+
+# Obsolete? ####################################################################
+def strip_plot(fig,ax,lims,aspect,fname,dpi=65):
+   ax.set_aspect(aspect)
+   ax.set_xlim(lims[0:2])
+   ax.set_ylim(lims[2:4])
+   ax.get_xaxis().set_visible(False)
+   ax.get_yaxis().set_visible(False)
+   plt.axis('off')
+   fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+   fig.savefig(fname, transparent=True, bbox_inches='tight', pad_inches=0,
+                      dpi=dpi, quality=90)   # compression

@@ -81,16 +81,16 @@ fname = f'{R.domain_folder}/namelist.input'
 with open(fname,'r') as f:
    all_text = []
    for line in f.read().strip().splitlines():
-      # Ignored for real cases
+      # Ignored for real cases?
       # https://www2.mmm.ucar.edu/wrf/users/namelist_best_prac_wrf.html#run_days
-      # if line.strip().startswith('run_days'):
-      #    line = f'run_days                 = {run_days},'
-      # elif line.strip().startswith('run_hours'):
-      #    line = f'run_hours                = {run_hours},'
-      # elif line.strip().startswith('run_minutes'):
-      #    line = f'run_minutes              = {run_minutes},'
-      # elif line.strip().startswith('run_seconds'):
-      #    line = f'run_seconds              = {run_seconds},'
+      if line.strip().startswith('run_days'):
+         line = f'run_days                 = {run_days},'
+      elif line.strip().startswith('run_hours'):
+         line = f'run_hours                = {run_hours},'
+      elif line.strip().startswith('run_minutes'):
+         line = f'run_minutes              = {run_minutes},'
+      elif line.strip().startswith('run_seconds'):
+         line = f'run_seconds              = {run_seconds},'
       if line.strip().startswith('start_year'):
          line = f'start_year               = '
          for _ in R.domains:
