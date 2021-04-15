@@ -8,9 +8,24 @@ if len(diff) > 0:
    os.system('f2py3 -c -m drjack drjack.f90 && cp drjack.f90 .drjack.f90')
 else: print('Already compiled')
 import drjack
-
 import wrf
-import plot_functions as PF   # My plotting functions
+import sounding_plot as SP
+
+from configparser import ConfigParser, ExtendedInterpolation
+from os.path import expanduser
+
+def get_outfolder(fname):
+   """
+   Load the config options and return it as a class
+   """
+   # LG.info(f'Loading config file: {fname}')
+   # if not os.path.isfile(fname): return None
+   config = ConfigParser(inline_comment_prefixes='#')
+   config._interpolation = ExtendedInterpolation()
+   config.read(fname)
+   plots_folder = expanduser(config['run']['plots_folder'])
+   return plots_folder
+
 
 
 def calc_wblmaxmin(linfo, wa, heights, terrain, bldepth):
@@ -79,8 +94,8 @@ def calc_bltopwind(uEW,vNS,heights,terrain,bldepth):
 
 
 
-def sounding(lat,lon,date,ncfile,pressure,tc,td,t0,ua,va,fout='sounding.png'):
-               # ,UTCshift=dt.timedelta(days=0),fout='sounding.png'):
+def sounding(lat,lon,date,ncfile,pressure,tc,td,t0,ua,va,
+                                       latlon='',title='',fout='sounding.png'):
    """
    lat,lon: spatial coordinates for the sounding
    date: UTC date-time for the sounding
@@ -102,8 +117,10 @@ def sounding(lat,lon,date,ncfile,pressure,tc,td,t0,ua,va,fout='sounding.png'):
    u = ua[:,i,j]
    v = va[:,i,j]
 
-   fig,ax = PF.skewt_plot(p,tc,tdc,t0,date,u,v,show=False)
-   fig.savefig(fout)
+   fig,ax = SP.skewt_plot(p,tc,tdc,t0,date,u,v,
+                                          latlon=latlon,title=title,show=False)
+   # fig.savefig(fout)
+   fig.savefig(fout, bbox_inches='tight', pad_inches=0.1, dpi=150, quality=90)
 
 
 def cross_path(start,end):

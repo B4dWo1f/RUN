@@ -1,26 +1,36 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
-import os
-here = os.path.dirname(os.path.realpath(__file__))
 import numpy as np
-import rasterio
-from rasterio.merge import merge
-from cartopy.feature import NaturalEarthFeature
-import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
-# try: plt.style.use('rasp')
-# except: pass
-import matplotlib.patheffects as PathEffects
-from matplotlib.colors import LightSource, BoundaryNorm
+from metpy.plots import SkewT
+from metpy.units import units
+import matplotlib.lines as mlines
+import metpy.calc as mpcalc
+from matplotlib import gridspec
+
+# import os
+# here = os.path.dirname(os.path.realpath(__file__))
+# import rasterio
+# from rasterio.merge import merge
+# from cartopy.feature import NaturalEarthFeature
+# import cartopy.crs as ccrs
+# import matplotlib.patheffects as PathEffects
+# from matplotlib.colors import LightSource, BoundaryNorm
 
 ## Dark Theme ##################################################################
 import matplotlib as mpl
-#  COLOR = 'black'
-#  ROLOC = '#e0e0e0'
-mpl.rcParams['axes.facecolor'] = (1,1,1,0)
-mpl.rcParams['figure.facecolor'] = (1,1,1,0)
-mpl.rcParams["savefig.facecolor"] = (1,1,1,0)
+# #  COLOR = 'black'
+# #  ROLOC = '#e0e0e0'
+mpl.rcParams['font.family'] = 'serif'
+mpl.rcParams['font.size'] = 15.0
+mpl.rcParams['mathtext.rm'] = 'serif'
+mpl.rcParams['figure.dpi'] = 150
+mpl.rcParams['axes.labelsize'] = 'large' # fontsize of the x any y labels
+
+# mpl.rcParams['axes.facecolor'] = (1,1,1,0)
+# mpl.rcParams['figure.facecolor'] = (1,1,1,0)
+# mpl.rcParams["savefig.facecolor"] = (1,1,1,0)
 
 #  mpl.rcParams['text.color'] = ROLOC #COLOR
 #  mpl.rcParams['axes.labelcolor'] = COLOR
@@ -33,165 +43,7 @@ mpl.rcParams["savefig.facecolor"] = (1,1,1,0)
 ################################################################################
 
 
-def setup_plot(ref_lat,ref_lon,left,right,bottom,top,transparent=True):
-   orto = ccrs.PlateCarree()
-   projection = ccrs.LambertConformal(ref_lon,ref_lat)
-   # projection = ccrs.RotatedPole(pole_longitude=-150, pole_latitude=37.5)
-
-   extent = left, right, bottom, top
-   fig = plt.figure(figsize=(11,9)) #, frameon=False)
-   # ax = plt.axes(projection=projection)
-   ax = fig.add_axes([0,0,0.99,1],projection=projection)
-   ax.set_extent(extent, crs=orto)
-   if transparent:
-       # ax.outline_patch.set_visible(False)
-       ax.background_patch.set_visible(False)
-   return fig,ax,orto
-
-
-def terrain_plot(reflat,reflon,left,right,bottom,top):
-   fig, ax, orto = setup_plot(reflat,reflon,left,right,bottom,top)
-### RASTER ###################################################################
-   files = os.popen('ls geb*').read().strip().splitlines()
-   srcs = [rasterio.open(fname, 'r') for fname in files]
-   # fname0 = files[0]
-   # fname1 = files[1]
-   # src0 = rasterio.open(fname0, 'r')
-   # src1 = rasterio.open(fname1, 'r')
-   D = 2
-   mosaic, out_trans = merge(srcs, (left-D, bottom-D, right+D, top+D))
-   terrain = mosaic[0,:,:]
-   ls = LightSource(azdeg=315, altdeg=45)
-   ve = 0.7
-   terrain = ls.hillshade(terrain, vert_exag=ve)
-   ax.imshow(terrain, extent=(left-D, right+D, bottom-D, top+D),
-                      origin='upper', cmap='gray',
-                      aspect='equal', interpolation='lanczos',
-                      zorder=0, transform=orto)
-   ax.plot([5,5],[30,50],'r--', transform=orto)
-   ax.plot([0,0],[30,50],'r--', transform=orto)
-   ax.plot([-5,-5],[30,50],'r--', transform=orto)
-   ax.plot([-10,-10],[30,50],'r--', transform=orto)
-   ax.plot([-15,-15],[30,50],'r--', transform=orto)
-   ax.plot([-20,8],[45,45],'r--', transform=orto)
-   ax.plot([-20,8],[40,40],'r--', transform=orto)
-   ax.plot([-20,8],[35,35],'r--', transform=orto)
-   ax.plot([-20,8],[30,30],'r--', transform=orto)
-   return fig,ax,orto
-
-def rivers_plot(fig,ax,orto):
-   rivers = NaturalEarthFeature('physical',
-                                'rivers_lake_centerlines_scale_rank',
-                                '10m', facecolor='none')
-   ax.add_feature(rivers, lw=2 ,edgecolor='C0',zorder=50)
-   rivers = NaturalEarthFeature('physical', 'rivers_europe',
-                                '10m', facecolor='none')
-   ax.add_feature(rivers, lw=2 ,edgecolor='C0',zorder=50)
-   lakes = NaturalEarthFeature('physical', 'lakes', '10m') 
-   ax.add_feature(lakes, lw=2 ,edgecolor='C0',zorder=50)
-   lakes = NaturalEarthFeature('physical', 'lakes_historic', '10m')
-   ax.add_feature(lakes, lw=2 ,edgecolor='C0',zorder=50)
-   lakes = NaturalEarthFeature('physical', 'lakes_pluvial', '10m')
-   ax.add_feature(lakes, lw=2 ,edgecolor='C0',zorder=50)
-   lakes = NaturalEarthFeature('physical', 'lakes_europe', '10m')
-   ax.add_feature(lakes, lw=2 ,edgecolor='C0',zorder=50)
-   return fig,ax,orto
-
-def sea_plot(fig,ax,orto):
-   sea = NaturalEarthFeature('physical', 'bathymetry_all', '10m') #, facecolor='none')
-   ax.add_feature(sea, lw=2) # ,edgecolor='C0',zorder=50)
-   return fig,ax,orto
-
-def ccaa_plot(fig,ax,orto):
-   provin = NaturalEarthFeature('cultural', 'admin_1_states_provinces_lines',
-                                            '10m', facecolor='none')
-   country = NaturalEarthFeature('cultural', 'admin_0_countries', '10m',
-                                                   facecolor='none')
-   ax.add_feature(provin, lw=2 ,edgecolor='k',zorder=50)
-   ax.add_feature(country,lw=2.3, edgecolor='k', zorder=51)
-   return fig,ax,orto
-
-def csv_plot(fig,ax,orto, fname):
-   Yt,Xt = np.loadtxt(fname,usecols=(0,1),delimiter=',',unpack=True)
-   names = np.loadtxt(fname,usecols=(2,),delimiter=',',dtype=str)
-   ax.scatter(Xt,Yt,s=40,c='r',marker='x',transform=orto,zorder=53)
-   return fig,ax,orto
-
-def csv_names_plot(fig,ax,orto, fname):
-   # Cities
-   Yt,Xt = np.loadtxt(fname,usecols=(0,1),delimiter=',',unpack=True)
-   names = np.loadtxt(fname,usecols=(2,),delimiter=',',dtype=str)
-   for x,y,name in zip(Xt,Yt,names):
-      txt = ax.text(x,y,name, horizontalalignment='center',
-                              verticalalignment='center',
-                              color='k',fontsize=13,
-                              transform=orto,zorder=52)
-      txt.set_path_effects([PathEffects.withStroke(linewidth=5,
-                                                   foreground='w')])
-   return fig,ax,orto
-
-
-
-def scalar_plot(fig,ax,orto, lons,lats,prop, delta,vmin,vmax,cmap,
-                                                 levels=[], creation_date=''):
-   if len(levels) > 0:
-      norm = BoundaryNorm(levels,len(levels))
-   else:
-      levels = np.arange(vmin,vmax,delta)
-      norm = None
-   C = ax.contourf(lons,lats,prop, levels=levels, extend='max',
-                                   antialiased=True, norm=norm,
-                                   cmap=cmap, vmin=vmin, vmax=vmax,
-                                   zorder=10, transform=orto)
-   if len(creation_date) > 0:
-       ax.text(1,0., creation_date, va='bottom', ha='right', color='k',
-                     fontsize=12, bbox=dict(boxstyle="round",
-                                            ec=None, fc=(1., 1., 1., 0.9)),
-                     zorder=100, transform=ax.transAxes)
-   # cbaxes = fig.add_axes([0., -0.05, 0.999, 0.03]) 
-   # fig.colorbar(C, cax=cbaxes,orientation="horizontal")
-   # cbaxes.set_xlabel('test')
-   # return C, cbaxes
-   return C
-
-def vector_plot(fig,ax,orto,lons,lats,U,V, dens=1.5,color=(0,0,0,0.75)):
-   x = lons[0,:].values
-   y = lats[:,0].values
-   # try:  #XXX workaround for DrJack's wind calculations
-   #     U = U.values
-   #     V = V.values
-   # except: pass
-   ax.streamplot(x,y, U,V, color=color, linewidth=1, density=dens,
-                           arrowstyle='->',arrowsize=2.5,
-                           zorder=11,
-                           transform=orto)
-
-
-
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-def plot_colorbar(cmap,delta=4,vmin=0,vmax=60,levels=None,name='cbar',
-                                        units='',fs=18,norm=None,extend='max'):
-   fig, ax = plt.subplots()
-   img = np.random.uniform(vmin,vmax,size=(40,40))
-   if len(levels) == 0:
-      levels=np.arange(vmin,vmax,delta)
-   img = ax.contourf(img, levels=levels,
-                          extend=extend,
-                          antialiased=True,
-                          cmap=cmap,
-                          norm=norm,
-                          vmin=vmin, vmax=vmax)
-   plt.gca().set_visible(False)
-   divider = make_axes_locatable(ax)
-   cax = divider.new_vertical(size="2.95%", pad=0.25, pack_start=True)
-   fig.add_axes(cax)
-   cbar = fig.colorbar(img, cax=cax, orientation="horizontal")
-   cbar.ax.set_xlabel(units,fontsize=fs)
-   fig.savefig(f'{name}.png', transparent=True,
-                              bbox_inches='tight', pad_inches=0)
-
-
-def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,show=False):
+def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,latlon='',title='',show=False):
    """
    h: heights
    p: pressure
@@ -225,11 +77,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,show=False):
    t0 = t0.values
    u = u.values * 3.6  # km/h
    v = v.values * 3.6  # km/h
-   from metpy.plots import SkewT
-   from metpy.units import units
-   import matplotlib.lines as mlines
-   import metpy.calc as mpcalc
-   from matplotlib import gridspec
+   # Grid plot
    fig = plt.figure(figsize=(11, 12))
    gs = gridspec.GridSpec(1, 4)
    fig.subplots_adjust(wspace=0.,hspace=0.)
@@ -239,6 +87,11 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,show=False):
    skew = SkewT(fig, rotation=45, subplot=gs[0,0:-1])
    ax = skew.ax
 
+   if len(latlon) > 0:
+       ax.text(0,1, latlon, va='top', ha='left', color='k',
+                     fontsize=12, bbox=dict(boxstyle="round",
+                                            ec=None, fc=(1., 1., 1., 0.9)),
+                     zorder=100, transform=ax.transAxes)
    # Plot the data, T and Tdew vs pressure
    skew.plot(p, tc, 'C3')
    skew.plot(p, tdc, 'C0')
@@ -271,8 +124,9 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,show=False):
       ax2.xaxis.tick_top()
       wspd = np.sqrt(u*u + v*v)
       ax2.plot(wspd, p)
-      ax2.set_xlim(0,40)
+      ax2.set_xlim(0,56)
       ax2.set_xlabel('Wspeed (km/h)')
+      ax2.grid()
       def p2h(x):
          """
          x in hPa
@@ -300,9 +154,10 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,show=False):
       # exit()
       ax2y = ax2.secondary_yaxis(1.,functions=(p2h,h2p))
       ax2y.set_ylabel('height (m)')
-      ax2y.set_yticks([10**3,5*10**3,10**4])
-      ax2y.set_yticks([1,2,3,4])
-      ax2.set_xticks([0,5,10,15,20,30,40])
+      ax2y.set_yticks(np.array([1000,2000,3000,4000,6000,6000,10000]))
+      # ax2y.set_yticks([1,2,3,4])
+      ax2.set_xticks([0,5,10,15,20,30,40,50])
+      ax2.set_xticklabels(['0','','10','','20','30','40','50'])
       # from matplotlib.ticker import ScalarFormatter
       # ax2y.set_major_formatter(ScalarFormatter())
       plt.setp(ax2.get_yticklabels(), visible=False)
@@ -372,7 +227,11 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,show=False):
 
    ax.set_xlabel("Temperature (C)")
    ax.set_ylabel("P (hPa)")
-   ax.set_title(f"{(date).strftime('%d/%m/%Y-%H:%M')} (local time)")
+   if len(title) == 0:
+       title = f"{(date).strftime('%d/%m/%Y-%H:%M')} (local time)"
+       ax.set_title(title,fontsize=20)
+   else:
+       ax.set_title(title, fontsize=20)
    if show: plt.show()
    return fig,ax
 

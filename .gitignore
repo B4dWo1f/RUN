@@ -1,4 +1,9 @@
+**.log
+**.err
 **.png
 **.tif
+**.nc
 **drjack*
+namelist.wps
+namelist.input
 **__pycache__

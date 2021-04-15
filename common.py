@@ -15,10 +15,10 @@ import json
 
 
 class RunParams(object):
-   def __init__(self, start_date, end_date, daily_hours,
-                      domains, domain_folder, GFS_data_folder,output_folder,
-                      leftlon, rightlon, toplat, bottomlat,
-                      Ncores):
+   def __init__(self, start_date, end_date, daily_hours, domains,
+                      domain_folder, GFS_data_folder,
+                      output_folder, plots_folder,
+                      leftlon, rightlon, toplat, bottomlat, Ncores):
       UTCshift = dt.datetime.now() - dt.datetime.utcnow()
       UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
       self.UTCshift = UTCshift
@@ -38,6 +38,10 @@ class RunParams(object):
       self.output_folder = output_folder
       com = f'mkdir -p {self.output_folder}'
       LG.info(f'creating folder {self.output_folder}')
+      os.system(com)
+      self.plots_folder = plots_folder
+      com = f'mkdir -p {self.plots_folder}'
+      LG.info(f'creating folder {self.plots_folder}')
       os.system(com)
       self.leftlon   = leftlon
       self.rightlon  = rightlon
@@ -132,6 +136,7 @@ def load(fname='config.ini'):
    domain_folder = expanduser(config['run']['domain_folder'])
    GFS_data_folder = expanduser(config['run']['GFS_data_folder'])
    output_folder = expanduser(config['run']['output_folder'])
+   plots_folder = expanduser(config['run']['plots_folder'])
    leftlon   = float(config['run']['leftlon'])
    rightlon  = float(config['run']['rightlon'])
    toplat    = float(config['run']['toplat'])
@@ -140,10 +145,9 @@ def load(fname='config.ini'):
    # System
    Ncores = int(config['run']['Ncores'])
 
-   R = RunParams(start_date, end_date, hours_mask,
-                 domains_run, domain_folder, GFS_data_folder,output_folder,
-                 leftlon, rightlon, toplat, bottomlat,
-                 Ncores)
+   R = RunParams(start_date, end_date, hours_mask, domains_run,
+                 domain_folder, GFS_data_folder,output_folder,plots_folder,
+                 leftlon, rightlon, toplat, bottomlat, Ncores)
 
    # FTP
    server = config['ftp']['server']

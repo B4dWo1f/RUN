@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
-import plot_functions as PF   # My plotting functions
+import os
+here = os.path.dirname(os.path.realpath(__file__))
 import util as ut
 
 import pathlib
@@ -27,6 +28,10 @@ except IndexError:
    print('File not specified')
    exit()
 
+OUT_folder = ut.get_outfolder('../config.ini')
+DOMAIN = fname.split('/')[-1].replace('wrfout_','').split('_')[0]
+
+
 creation_date = pathlib.Path(fname).stat().st_mtime
 creation_date = dt.datetime.fromtimestamp(creation_date)
 
@@ -37,6 +42,21 @@ UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
 
 print('File:',fname)
 ncfile = Dataset(fname)
+
+# Date in UTC
+# prefix to save files
+date = str(wrf.getvar(ncfile, 'times').values)
+date = dt.datetime.strptime(date[:-3], '%Y-%m-%dT%H:%M:%S.%f')
+print('Forecat for:',date)
+
+# Variables for saving outputs
+OUT_folder = '/'.join([OUT_folder,DOMAIN,date.strftime('%Y/%m/%d')])
+com = 'mkdir -p {OUT_folder}'
+os.system(com)
+HH = date.strftime('%H%M')
+
+
+
 ## Calculation parameters
 # for x in ncfile.ncattrs():
 #    print(x)
@@ -46,26 +66,19 @@ reflat = ncfile.getncattr('CEN_LAT')
 reflon = ncfile.getncattr('CEN_LON')
 
 ## all WRF variables
-for v,k in ncfile.variables.items():
-   print(v)
-   # print(k.ncattrs())
-   try: print(k.getncattr('description'))
-   except: print('Description:')
-   try: print(k.getncattr('units'))
-   except: print('units: None')
-   # print(k.dimensions)
-   print(k.shape)
-   print('')
-print('*******')
+# for v,k in ncfile.variables.items():
+#    print(v)
+#    # print(k.ncattrs())
+#    try: print(k.getncattr('description'))
+#    except: print('Description:')
+#    try: print(k.getncattr('units'))
+#    except: print('units: None')
+#    # print(k.dimensions)
+#    print(k.shape)
+#    print('')
+# print('*******')
 
-# prefix to save files
-prefix = fname.split('/')[-1].replace('wrfout_','').split('_')[0]
 
-# Date in UTC
-date = str(wrf.getvar(ncfile, 'times').values)
-date = dt.datetime.strptime(date[:-3], '%Y-%m-%dT%H:%M:%S.%f')
-print('Forecat for:',date)
-prefix += '_' + date.strftime('%Y%m%d_%H%M') + '_'
 
 
 ### Read region data
@@ -123,26 +136,20 @@ print('td',td.shape)
 # Temperature 2m above ground___________________________________[K-->°C] (ny,nx)
 t2m = wrf.getvar(ncfile, "T2").metpy.convert_units('degC')
 t2m.attrs['units'] = 'degC'
+print('t2m',t2m.shape)
 # SOIL TEMPERATURE AT LOWER BOUNDARY____________________________[K-->°C] (ny,nx)
 tmn = wrf.getvar(ncfile, "TMN").metpy.convert_units('degC')
 tmn.attrs['units'] = 'degC'
+print('tmn',tmn.shape)
 # SOIL TEMPERATURE AT LOWER BOUNDARY____________________________[K-->°C] (ny,nx)
 tsk = wrf.getvar(ncfile, "TSK").metpy.convert_units('degC')
 tsk.attrs['units'] = 'degC'
-
-# print(t2m)
-# print(tsk)
-# fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-# ax.contourf(lons,lats,tsk-t2m, vmin=-5,vmax=5,transform=orto,alpha=0.5)
-# fig.tight_layout()
-# plt.show()
-# exit()
+print('tsk',tsk.shape)
 
 # Planetary Boundary Layer Height____________________________________[m] (ny,nx)
 # Atmospheric Boundary layer thickness above ground
 bldepth = wrf.getvar(ncfile, "PBLH")
 print('PBLH',bldepth.shape)
-
 
 # Surface sensible heat flux in___________________________________[W/m²] (ny,nx)
 hfx = wrf.getvar(ncfile, "HFX") 
@@ -166,11 +173,11 @@ qvapor = wrf.getvar(ncfile, "QVAPOR")
 print('Qvapor:',qvapor.shape)
 
 
-# Rain
+# Rain______________________________________________________________[mm] (ny,nx)
 rain = wrf.getvar(ncfile, "RAINC") + wrf.getvar(ncfile, "RAINNC")
 print('rain:', rain.shape)
 
-# Clouds
+# Clouds_____________________________________________________________[%] (ny,nx)
 low_cloudfrac  = wrf.getvar(ncfile, "low_cloudfrac")
 mid_cloudfrac  = wrf.getvar(ncfile, "mid_cloudfrac")
 high_cloudfrac = wrf.getvar(ncfile, "high_cloudfrac")
@@ -189,13 +196,10 @@ LCL =cape2d[2,:,:]   # Cloud base when forced lifting occurs
 
 
 
-# Derived Quantities by DrJack
+## Derived Quantities by DrJack ################################################
+# Using utils wrappers to hide the transpose of every variable XXX Inefficient
 # BL Max. Up/Down Motion (BL Convergence)_________________________[cm/s] (ny,nx)
 wblmaxmin = ut.calc_wblmaxmin(0, wa, heights, terrain, bldepth)
-# wblmaxmin = drjack.calc_wblmaxmin(0, wa.transpose(),
-#                                      heights.transpose(),
-#                                      terrain.transpose(),
-#                                      bldepth.transpose()).transpose()
 print('WBLmaxmin:',wblmaxmin.shape)
 
 # Thermal Updraft Velocity (W*)____________________________________[m/s] (ny,nx)
@@ -210,91 +214,47 @@ maxcwbasem = 5486.40
 cwbasecriteria = 0.000010
 blcwbase = ut.calc_blcloudbase( qcloud,  heights, terrain, bldepth,
                                 cwbasecriteria, maxcwbasem, laglcwbase)
-# all the transposes are necessary to agree with DrJack's notation
-# blcwbase = drjack.calc_blcloudbase( qcloud.transpose(),  heights.transpose(),
-#                                     terrain.transpose(), bldepth.transpose(),
-#                                     cwbasecriteria, maxcwbasem, laglcwbase)
-# blcwbase = blcwbase.transpose()
 print('BLcwbase:',blcwbase.shape)
 
 # Height of Critical Updraft Strength (hcrit)________________________[m] (ny,nx)
 hcrit = ut.calc_hcrit( wstar, terrain, bldepth)
-# hcrit = drjack.calc_hcrit( wstar, terrain, bldepth)
 print('Hcrit:',hcrit.shape)
 
 # Height of SFC.LCL__________________________________________________[m] (ny,nx)
 # Cu Cloudbase ~I~where Cu Potential > 0~P~
 zsfclcl = ut.calc_sfclclheight( pressure, tc, td, heights, terrain, bldepth )
-# zsfclcl = drjack.calc_sfclclheight( pressure.transpose(),
-#                                     tc.transpose(), td.transpose(),
-#                                     heights.transpose(),
-#                                     terrain.transpose(),
-#                                     bldepth.transpose() )
-# zsfclcl = zsfclcl.transpose()
 print('zsfclcl:',zsfclcl.shape)
 
 # OvercastDevelopment Cloudbase__________________________________[m?] (nz,ny,nx)
 pmb = 0.01*(p.values+pb.values) # press is vertical coordinate in mb
 zblcl = ut.calc_blclheight(qvapor,heights,terrain,bldepth,pmb,tc)
-# qvaporblavg = drjack.calc_blavg( qvapor.transpose(),
-#                                  heights.transpose(),
-#                                  terrain.transpose(),
-#                                  bldepth.transpose() )
-# qvaporblavg = qvaporblavg.transpose()
-# pmb=var = 0.01*(p.values+pb.values) # press is vertical coordinate in mb
-# zblcl = drjack.calc_blclheight( pmb.transpose(),
-#                                 tc.transpose(),
-#                                 qvaporblavg.transpose(),
-#                                 heights.transpose(),
-#                                 terrain.transpose(),
-#                                 bldepth.transpose() )
-# zblcl = zblcl.transpose()
 print('zblcl:',zblcl.shape)
 
 
 # Thermalling Height_________________________________________________[m] (ny,nx)
-# Oriol
-# hglider_aux = np.minimum(hwcrit,zsfclcl)
-# hglider=np.minimum(hglider_aux,zblcl)
+# From Oriol Cervello's
 hglider = np.minimum(np.minimum(hcrit,zsfclcl), zblcl)
 print('hglider:',hglider.shape)
-
+# XXX warning!! hglider becomes numpy.array
 # from xarray.core.dataarray import DataArray
 # hglider = DataArray(hglider)
 # hglider.attrs["units"] = "metres"
 
 
-# BL Avg Wind______________________________________________________[m/s?] (ny,nx)
+# BL Avg Wind_____________________________________________________[m/s?] (ny,nx)
 # uv NOT rotated to grid in m/s
 uv = wrf.getvar(ncfile, "uvmet")
 uEW = uv[0,:,:,:]
 vNS = uv[1,:,:,:]
 ublavgwind = ut.calc_blavg(uEW, heights, terrain, bldepth)
-# ublavgwind = drjack.calc_blavg(uEW.transpose(),
-#                                heights.transpose(),
-#                                terrain.transpose(),
-#                                bldepth.transpose())
 vblavgwind = ut.calc_blavg(vNS, heights, terrain, bldepth)
-# vblavgwind = drjack.calc_blavg(vNS.transpose(),
-#                                heights.transpose(),
-#                                terrain.transpose(),
-#                                bldepth.transpose())
-# ublavgwind = ublavgwind.transpose()
-# vblavgwind = vblavgwind.transpose()
 blwind = np.sqrt(ublavgwind*ublavgwind + vblavgwind*vblavgwind)
 print('uBLavg:',ublavgwind.shape)
 print('vBLavg:',vblavgwind.shape)
 print('BLwind:',blwind.shape)
 
-# BL Top Wind______________________________________________________[m/s?] (ny,nx)
+# BL Top Wind_____________________________________________________[m/s?] (ny,nx)
 utop,vtop = ut.calc_bltopwind(uEW, vNS, heights,terrain,bldepth)
-# utop,vtop = drjack.calc_bltopwind(uEW.transpose(),
-#                                   vNS.transpose(),
-#                                   heights.transpose(),
-#                                   terrain.transpose(),
-#                                   bldepth.transpose())
-# utop = utop.transpose()
-# vtop = vtop.transpose()
 bltopwind = np.sqrt(utop*utop + vtop*vtop)
 print('utop:',utop.shape)
 print('vtop:',vtop.shape)
@@ -316,30 +276,34 @@ print('BLtopwind:',bltopwind.shape)
 
 
 
-#################################################################################
+################################################################################
 #                                     Plots                                     #
-#################################################################################
-## Dark Theme ###################################################################
+################################################################################
 
-
-soundings = [('bustarviejo', (40.87575, -3.68661)),
-             ('abantos', (40.611774, -4.154882)),
-             ('canencia', (40.93716440325912, -3.7299387579645904)),
-             ('arcones', (41.078854, -3.707029))]
-for name,point in soundings:
+## Soundings ###################################################################
+f_cities = f'{here}/soundings.csv'
+Yt,Xt = np.loadtxt(f_cities,usecols=(0,1),delimiter=',',unpack=True)
+names = np.loadtxt(f_cities,usecols=(2,),delimiter=',',dtype=str)
+soundings = [(n,(la,lo))for n,la,lo in zip(names,Yt,Xt)]
+for place,point in soundings:
    lat,lon = point
-   name = prefix + 'sounding_' + name + '.png'
-   ut.sounding(lat,lon,date,ncfile,pressure,tc,td,t2m,ua,va,fout=name)
+   name = f'{OUT_folder}/{HH}_sounding_{place}.png'
+   title = f"{place.capitalize()}"
+   title += f" {(date+UTCshift).strftime('%d/%m/%Y-%H:%M')}"
+   latlon = f'({lat:.2f},{lon:.2f})'
+   ut.sounding(lat,lon,date,ncfile,pressure,tc,td,t2m,ua,va,latlon,title,fout=name)
 
 
 
-
+## Scalar properties ###########################################################
+import plot_functions as PF   # My plotting functions
 import matplotlib as mpl
 #  COLOR = 'black'
 #  ROLOC = '#e0e0e0'
 mpl.rcParams['axes.facecolor'] = (1,1,1,0)
 mpl.rcParams['figure.facecolor'] = (1,1,1,0)
 mpl.rcParams["savefig.facecolor"] = (1,1,1,0)
+mpl.rcParams["figure.dpi"] = 150
 from configparser import ConfigParser, ExtendedInterpolation
 def get_properties(fname,section):
    """
@@ -362,22 +326,64 @@ def get_properties(fname,section):
    except KeyError: levels = []
    levels = [float(l) for l in levels]
    cmap = config[section]['cmap']
-   return factor,vmin,vmax,delta,levels,cmap
+   units = config[section]['units']
+   return factor,vmin,vmax,delta,levels,cmap,units
 
 
 
 
 fontsize_title = 30
 from time import time
-# Terrain #######################################################################
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-fig.savefig('terrain.png', transparent=True, bbox_inches='tight',
-                   pad_inches=0,
-                   dpi=90, quality=90)
+# Background plots #############################################################
+## Terrain 
+fig,ax,orto = PF.terrain_plot(reflat,reflon,left,right,bottom,top)
+fig.savefig(f'{OUT_folder}/terrain.png', transparent=True, bbox_inches='tight',
+                   pad_inches=0, #dpi=90,
+                   quality=90)
+# ## Ocean
+# fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+# PF.sea_plot(fig,ax,orto)
+# fig.savefig(f'{OUT_folder}/ocean.png', transparent=True, bbox_inches='tight',
+#                    pad_inches=0, #dpi=90,
+#                    quality=90)
+## Rivers
+fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+PF.rivers_plot(fig,ax,orto)
+fig.savefig(f'{OUT_folder}/rivers.png', transparent=True, bbox_inches='tight',
+                   pad_inches=0, #dpi=90,
+                   quality=90)
+## CCAA
+fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+PF.ccaa_plot(fig,ax,orto)
+fig.savefig(f'{OUT_folder}/ccaa.png', transparent=True, bbox_inches='tight',
+                   pad_inches=0, #dpi=90,
+                   quality=90)
+## Cities
+fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+PF.csv_plot(fig,ax,orto,f'{here}/cities.csv')
+fig.savefig(f'{OUT_folder}/cities.png', transparent=True, bbox_inches='tight',
+                   pad_inches=0, #dpi=90,
+                   quality=90)
+## Citiy Names
+fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+PF.csv_names_plot(fig,ax,orto,f'{here}/cities.csv')
+fig.savefig(f'{OUT_folder}/cities_names.png', transparent=True,
+            bbox_inches='tight', pad_inches=0, #dpi=90,
+            quality=90)
+## Takeoffs 
+fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+PF.csv_plot(fig,ax,orto,f'{here}/takeoffs.csv')
+fig.savefig(f'{OUT_folder}/takeoffs.png', transparent=True,
+            bbox_inches='tight', pad_inches=0, #dpi=90,
+                   quality=90)
+## Takeoffs Names
+fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+PF.csv_names_plot(fig,ax,orto,f'{here}/takeoffs.csv')
+fig.savefig(f'{OUT_folder}/takeoffs_names.png', transparent=True,
+            bbox_inches='tight', pad_inches=0, #dpi=90,
+            quality=90)
 
-
-
-
+# Properties ###################################################################
 wrf_properties = {'sfcwind':sfcwind, 'blwind':blwind, 'bltopwind':bltopwind,
                   'hglider':hglider, 'wstar':wstar, 'zsfclcl':zsfclcl,
                   'zblcl':zblcl, 'cape':MCAPE, 'wblmaxmin':wblmaxmin,
@@ -394,52 +400,77 @@ titles = {'sfcwind':'Viento Superficie', 'blwind':'Viento Promedio',
           'bldepth': 'Altura Capa Convectiva', 'bsratio': 'B/S ratio',
           'rain': 'Lluvia', 'blcloudpct':'Nubosidad (%)'}
 
-prop_units = {'sfcwind':'km/h', 'blwind':'km/h',
-              'bltopwind':'km/h', 'hglider':'m',
-              'wstar':'m/s', 'zsfclcl':'m', 'zblcl':'m',
-              'cape':'J/Kg', 'wblmaxmin':'m/s',
-              'bldepth': 'm', #'bsratio': 'B/S ratio',
-              'rain': 'mm', 'blcloudpct':'%'}
-# BLdepth #######################################################################
-print('='*80)
-print('='*80)
-told = time()
-prop = 'bldepth'
-ftitles = open('titles.txt','w')
+# prop_units = {'sfcwind':'km/h', 'blwind':'km/h',
+#               'bltopwind':'km/h', 'hglider':'m',
+#               'wstar':'m/s', 'zsfclcl':'m', 'zblcl':'m',
+#               'cape':'J/Kg', 'wblmaxmin':'m/s',
+#               'bldepth': 'm', #'bsratio': 'B/S ratio',
+#               'rain': 'mm', 'blcloudpct':'%'}
+
+# plot scalars #################################################################
+ftitles = open(f'{OUT_folder}/titles.txt','w')
 for prop in ['sfcwind', 'blwind', 'bltopwind', 'hglider', 'wstar', 'zsfclcl',
              'zblcl', 'cape', 'wblmaxmin', 'bldepth', # 'bsratio',
              'rain', 'blcloudpct']:
    print('*'*80)
    print('=-'*40)
    print(prop)
-   factor,vmin,vmax,delta,levels,cmap = get_properties('plots.ini', prop)
+   factor,vmin,vmax,delta,levels,cmap,units = get_properties('plots.ini', prop)
    # factor = float(props['factor'])
    # vmin = float(props['vmin'])
    # vmax = float(props['vmax'])
    # delta= float(props['delta'])
    # try: levels = props['levels']
    # except KeyError: levels = []
+   # if prop == 'wstar':
+   #     print(vmin,vmax,delta)
+   #     print(np.min(wrf_properties[prop]*factor),
+   #           np.max(wrf_properties[prop]*factor))
+   #     print(cmap)
+   #     fig, ax = plt.subplots()
+   #     ax.imshow(wrf_properties[prop]*factor, vmin=vmin,vmax=vmax,
+   #               cmap = colormaps[cmap], origin='lower')
+   #     fig.tight_layout()
+   #     plt.show()
    cmap = colormaps[cmap]   #Convergencias
    title = titles[prop]
    title = f"{title} {(date+UTCshift).strftime('%d/%m/%Y-%H:%M')}"
    M = wrf_properties[prop]
-   print(M.shape)
    fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
    C = PF.scalar_plot(fig,ax,orto, lons,lats,wrf_properties[prop]*factor,
-                      delta,vmin,vmax,cmap,levels=levels)
-   fname = prefix + prop + '.png'
+                      delta,vmin,vmax,cmap,
+                      levels=levels,
+                      creation_date=creation_date.strftime('%d/%m/%Y-%H:%Mz'))
+   fname = f'{OUT_folder}/{HH}_{prop}.png'
    fig.savefig(fname, transparent=True, bbox_inches='tight',
-                      pad_inches=0,
-                      dpi=90, quality=90)
+                      pad_inches=0, #dpi=90,
+                      quality=90)
    ftitles.write(f"{fname} ; {title}\n")
-   PF.plot_colorbar(cmap,delta,vmin,vmax,levels,name=prop,
-                                        units='',fs=18,norm=None,extend='max')
+   PF.plot_colorbar(cmap,delta,vmin,vmax,levels,name=f'{OUT_folder}/{prop}',
+                    units=units,fs=18,norm=None,extend='max')
    plt.close('all')
 ftitles.close()
 
 
+## Vector properties ###########################################################
+names = ['sfc','bl','bltop']
+winds = [[ua[0,:,:].values, va[0,:,:].values],
+         [ublavgwind, vblavgwind],
+         [utop, vtop]]
 
-
+for wind,name in zip(winds,names):
+   fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+   U = wind[0]
+   V = wind[1]
+   print(lons.shape)
+   print(lats.shape)
+   print(U.shape)
+   PF.vector_plot(fig,ax,orto,lons,lats,U,V, dens=1.5,color=(0,0,0))
+   # fname = OUT_folder +'/'+ prefix + name + '_vec.png'
+   fname = f'{OUT_folder}/{HH}_{prop}_vec.png'
+   fig.savefig(fname, transparent=True, bbox_inches='tight',
+                      pad_inches=0, #dpi=90,
+                      quality=90)
 
 exit()
 

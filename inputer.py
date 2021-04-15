@@ -83,7 +83,10 @@ with open(fname,'r') as f:
    for line in f.read().strip().splitlines():
       # Ignored for real cases?
       # https://www2.mmm.ucar.edu/wrf/users/namelist_best_prac_wrf.html#run_days
-      if line.strip().startswith('run_days'):
+      if line.strip().startswith('history_outname'):
+         line =   "history_outname          = "
+         line += f"'{R.output_folder}/wrfout_d<domain>_<date>',"
+      elif line.strip().startswith('run_days'):
          line = f'run_days                 = {run_days},'
       elif line.strip().startswith('run_hours'):
          line = f'run_hours                = {run_hours},'
