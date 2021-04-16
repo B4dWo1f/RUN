@@ -48,6 +48,9 @@ def setup_plot(ref_lat,ref_lon,left,right,bottom,top,transparent=True):
        ax.background_patch.set_visible(False)
    return fig,ax,orto
 
+def save_figure(fig,fname,dpi=150, quality=90):
+   fig.savefig(fname, transparent=True, bbox_inches='tight', pad_inches=0,
+                      dpi=dpi, quality=quality)
 
 def terrain_plot(reflat,reflon,left,right,bottom,top):
    fig, ax, orto = setup_plot(reflat,reflon,left,right,bottom,top)
@@ -68,15 +71,19 @@ def terrain_plot(reflat,reflon,left,right,bottom,top):
                       origin='upper', cmap='gray',
                       aspect='equal', interpolation='lanczos',
                       zorder=0, transform=orto)
-   ax.plot([5,5],[30,50],'r--', transform=orto)
-   ax.plot([0,0],[30,50],'r--', transform=orto)
-   ax.plot([-5,-5],[30,50],'r--', transform=orto)
-   ax.plot([-10,-10],[30,50],'r--', transform=orto)
-   ax.plot([-15,-15],[30,50],'r--', transform=orto)
-   ax.plot([-20,8],[45,45],'r--', transform=orto)
-   ax.plot([-20,8],[40,40],'r--', transform=orto)
-   ax.plot([-20,8],[35,35],'r--', transform=orto)
-   ax.plot([-20,8],[30,30],'r--', transform=orto)
+   return fig,ax,orto
+
+def parallel_and_meridian(fig,ax,orto,left,right,bottom,top,nx=1,ny=1):
+   lcs = 'k--'
+   D = 1
+   # Plotting meridian
+   for x in range(int(left-D), int(right+D)):
+      if x%nx ==0:
+         ax.plot([x,x],[bottom-D,top+D], lcs, transform=orto)
+   # Plotting parallels
+   for y in range(int(bottom-D), int(top+D)):
+      if y%ny == 0:
+         ax.plot([left-D,right+D],[y,y], lcs, transform=orto)
    return fig,ax,orto
 
 def rivers_plot(fig,ax,orto):

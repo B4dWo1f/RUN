@@ -304,6 +304,7 @@ mpl.rcParams['axes.facecolor'] = (1,1,1,0)
 mpl.rcParams['figure.facecolor'] = (1,1,1,0)
 mpl.rcParams["savefig.facecolor"] = (1,1,1,0)
 mpl.rcParams["figure.dpi"] = 150
+dpi = 150
 from configparser import ConfigParser, ExtendedInterpolation
 def get_properties(fname,section):
    """
@@ -337,51 +338,57 @@ from time import time
 # Background plots #############################################################
 ## Terrain 
 fig,ax,orto = PF.terrain_plot(reflat,reflon,left,right,bottom,top)
-fig.savefig(f'{OUT_folder}/terrain.png', transparent=True, bbox_inches='tight',
-                   pad_inches=0, #dpi=90,
-                   quality=90)
+fname = f'{OUT_folder}/terrain.png'
+PF.save_figure(fig,fname,dpi=dpi)
+
 # ## Ocean
 # fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 # PF.sea_plot(fig,ax,orto)
 # fig.savefig(f'{OUT_folder}/ocean.png', transparent=True, bbox_inches='tight',
 #                    pad_inches=0, #dpi=90,
 #                    quality=90)
+## Parallel and meridian
+fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+PF.parallel_and_meridian(fig,ax,orto,left,right,bottom,top)
+fname = f'{OUT_folder}/meridian.png'
+PF.save_figure(fig,fname,dpi=dpi)
+
 ## Rivers
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.rivers_plot(fig,ax,orto)
-fig.savefig(f'{OUT_folder}/rivers.png', transparent=True, bbox_inches='tight',
-                   pad_inches=0, #dpi=90,
-                   quality=90)
+fname = f'{OUT_folder}/rivers.png'
+PF.save_figure(fig,fname,dpi=dpi)
+
 ## CCAA
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.ccaa_plot(fig,ax,orto)
-fig.savefig(f'{OUT_folder}/ccaa.png', transparent=True, bbox_inches='tight',
-                   pad_inches=0, #dpi=90,
-                   quality=90)
+fname = f'{OUT_folder}/ccaa.png'
+PF.save_figure(fig,fname,dpi=dpi)
+
 ## Cities
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.csv_plot(fig,ax,orto,f'{here}/cities.csv')
-fig.savefig(f'{OUT_folder}/cities.png', transparent=True, bbox_inches='tight',
-                   pad_inches=0, #dpi=90,
-                   quality=90)
+fname = f'{OUT_folder}/cities.png'
+PF.save_figure(fig,fname,dpi=dpi)
+
 ## Citiy Names
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.csv_names_plot(fig,ax,orto,f'{here}/cities.csv')
-fig.savefig(f'{OUT_folder}/cities_names.png', transparent=True,
-            bbox_inches='tight', pad_inches=0, #dpi=90,
-            quality=90)
+fname = f'{OUT_folder}/cities_names.png'
+PF.save_figure(fig,fname,dpi=dpi)
+
 ## Takeoffs 
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.csv_plot(fig,ax,orto,f'{here}/takeoffs.csv')
-fig.savefig(f'{OUT_folder}/takeoffs.png', transparent=True,
-            bbox_inches='tight', pad_inches=0, #dpi=90,
-                   quality=90)
+fname = f'{OUT_folder}/takeoffs.png'
+PF.save_figure(fig,fname,dpi=dpi)
+
 ## Takeoffs Names
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.csv_names_plot(fig,ax,orto,f'{here}/takeoffs.csv')
-fig.savefig(f'{OUT_folder}/takeoffs_names.png', transparent=True,
-            bbox_inches='tight', pad_inches=0, #dpi=90,
-            quality=90)
+fname = f'{OUT_folder}/takeoffs_names.png'
+PF.save_figure(fig,fname,dpi=dpi)
+
 
 # Properties ###################################################################
 wrf_properties = {'sfcwind':sfcwind, 'blwind':blwind, 'bltopwind':bltopwind,
@@ -442,9 +449,8 @@ for prop in ['sfcwind', 'blwind', 'bltopwind', 'hglider', 'wstar', 'zsfclcl',
                       levels=levels,
                       creation_date=creation_date.strftime('%d/%m/%Y-%H:%Mz'))
    fname = f'{OUT_folder}/{HH}_{prop}.png'
-   fig.savefig(fname, transparent=True, bbox_inches='tight',
-                      pad_inches=0, #dpi=90,
-                      quality=90)
+   PF.save_figure(fig,fname,dpi=dpi)
+
    ftitles.write(f"{fname} ; {title}\n")
    PF.plot_colorbar(cmap,delta,vmin,vmax,levels,name=f'{OUT_folder}/{prop}',
                     units=units,fs=18,norm=None,extend='max')
@@ -468,9 +474,8 @@ for wind,name in zip(winds,names):
    PF.vector_plot(fig,ax,orto,lons,lats,U,V, dens=1.5,color=(0,0,0))
    # fname = OUT_folder +'/'+ prefix + name + '_vec.png'
    fname = f'{OUT_folder}/{HH}_{prop}_vec.png'
-   fig.savefig(fname, transparent=True, bbox_inches='tight',
-                      pad_inches=0, #dpi=90,
-                      quality=90)
+   PF.save_figure(fig,fname,dpi=dpi)
+
 
 exit()
 
