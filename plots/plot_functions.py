@@ -139,10 +139,14 @@ def scalar_plot(fig,ax,orto, lons,lats,prop, delta,vmin,vmax,cmap,
    else:
       levels = np.arange(vmin,vmax,delta)
       norm = None
-   C = ax.contourf(lons,lats,prop, levels=levels, extend='max',
-                                   antialiased=True, norm=norm,
-                                   cmap=cmap, vmin=vmin, vmax=vmax,
-                                   zorder=10, transform=orto)
+   try:
+      C = ax.contourf(lons,lats,prop, levels=levels, extend='max',
+                                      antialiased=True, norm=norm,
+                                      cmap=cmap, vmin=vmin, vmax=vmax,
+                                      zorder=10, transform=orto)
+   except:
+       # LG.warning('NaN values found, unable to plot')
+       C = None
    if len(creation_date) > 0:
        ax.text(1,0., creation_date, va='bottom', ha='right', color='k',
                      fontsize=12, bbox=dict(boxstyle="round",

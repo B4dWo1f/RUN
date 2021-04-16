@@ -51,7 +51,7 @@ print('Forecat for:',date)
 
 # Variables for saving outputs
 OUT_folder = '/'.join([OUT_folder,DOMAIN,date.strftime('%Y/%m/%d')])
-com = 'mkdir -p {OUT_folder}'
+com = f'mkdir -p {OUT_folder}'
 os.system(com)
 HH = date.strftime('%H%M')
 
