@@ -24,7 +24,7 @@ import gfs
 
 fini = 'config.ini'
 
-R,FTP = common.load(fini)
+R = common.load(fini)
 
 LG.info(f'{R.start_date} - {R.end_date}')
 current_date = R.start_date
@@ -34,5 +34,6 @@ while current_date <= R.end_date:
    if R.daily_hours[0] <= current_date.time() <= R.daily_hours[1]:
       dates_calc.append((current_date))
    current_date += step
+
 
 got_all_files = gfs.get_files(R,dates_calc,R.GFS_data_folder)

@@ -135,5 +135,6 @@ else
 fi
 
 mkdir -p "${OUTdata}"
-mv wrfout* "${OUTdata}"
+rm wrfoutReady*
+# mv wrfout_* "${OUTdata}"
 )

@@ -3,11 +3,13 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from metpy.plots import SkewT
+from metpy.plots import SkewT, Hodograph
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from metpy.units import units
 import matplotlib.lines as mlines
 import metpy.calc as mpcalc
 from matplotlib import gridspec
+from colormaps import HEIGHTS
 
 # import os
 # here = os.path.dirname(os.path.realpath(__file__))
@@ -74,7 +76,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,latlon='',title='',show=False):
    p = p.values
    tc = tc.values
    tdc = tdc.values
-   t0 = t0.values
+   t0 = t0.mean().values
    u = u.values * 3.6  # km/h
    v = v.values * 3.6  # km/h
    # Grid plot
@@ -123,7 +125,11 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,latlon='',title='',show=False):
       ax2.yaxis.tick_right()
       ax2.xaxis.tick_top()
       wspd = np.sqrt(u*u + v*v)
-      ax2.plot(wspd, p)
+      ax2.scatter(wspd, p, c=p, cmap=HEIGHTS) #'viridis_r')
+      gnd = mpcalc.pressure_to_height_std(np.array(p[0])*units.hPa)
+      gnd = gnd.to('m')
+      ax2.axhline(p[0],c='k',ls='--')
+      ax2.text(56,p[0],f'{int(gnd.magnitude)}m',horizontalalignment='right')
       ax2.set_xlim(0,56)
       ax2.set_xlabel('Wspeed (km/h)')
       ax2.grid()
@@ -161,6 +167,22 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,latlon='',title='',show=False):
       # from matplotlib.ticker import ScalarFormatter
       # ax2y.set_major_formatter(ScalarFormatter())
       plt.setp(ax2.get_yticklabels(), visible=False)
+      # Hodograph
+      ax_hod = inset_axes(ax2, '110%', '30%', loc=1)
+      ax_hod.set_yticklabels([])
+      L = 60
+      ax_hod.text(  0, L-5,'N', horizontalalignment='center',
+                               verticalalignment='center')
+      ax_hod.text(L-5,  0,'E', horizontalalignment='center',
+                               verticalalignment='center')
+      ax_hod.text(-(L-5),0 ,'W', horizontalalignment='center',
+                               verticalalignment='center')
+      ax_hod.text(  0,-(L-5),'S', horizontalalignment='center',
+                               verticalalignment='center')
+      h = Hodograph(ax_hod, component_range=L)
+      h.add_grid(increment=20)
+      h.plot_colormapped(-u, -v, p, cmap=HEIGHTS)  #'viridis_r')  # Plot a line colored by pressure (altitude)
+
 
 
       # # print('=-=-=-=-=-=-=')

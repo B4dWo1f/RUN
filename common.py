@@ -12,6 +12,7 @@ import logging
 import log_help
 LG = logging.getLogger(__name__)
 import json
+fmt = '%s/%d/%Y-%H:%M'
 
 
 class RunParams(object):
@@ -22,14 +23,19 @@ class RunParams(object):
       UTCshift = dt.datetime.now() - dt.datetime.utcnow()
       UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
       self.UTCshift = UTCshift
+      LG.info(f'Got UTCshift: {self.UTCshift}')
 
       # In this house we obey the laws of UTC time!!!
       self.start_date = min(start_date, end_date) - UTCshift
       self.end_date   = max(start_date, end_date) - UTCshift
+      msg = f'User wants: {self.start_date.strftime(fmt)} - '
+      msg += f'{self.end_date.strftime(fmt)}'
+      LG.info(msg)
       aux = []
       for h in daily_hours:
          aux.append(dt.datetime.combine(dt.date(1,1,1),h) - UTCshift)
       self.daily_hours = [h.time()  for h in aux]
+      LG.info(f'Daily hour mask: {self.daily_hours}')
       self.domains = domains
       self.domain_folder = domain_folder
       self.GFS_data_folder = GFS_data_folder
@@ -149,10 +155,4 @@ def load(fname='config.ini'):
                  domain_folder, GFS_data_folder,output_folder,plots_folder,
                  leftlon, rightlon, toplat, bottomlat, Ncores)
 
-   # FTP
-   server = config['ftp']['server']
-   folder_root = config['ftp']['folder_root']
-   Nparallel = config['ftp']['Nparallel']
-   https = config['https']['base_url']
-   FTP = GFS_Data(server,folder_root,Nparallel=Nparallel)
-   return R, FTP
+   return R

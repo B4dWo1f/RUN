@@ -274,6 +274,20 @@ col0 = np.array([52,77,138])
 col1 = np.array([1,1,1,0])
 stops = [col0/255,col1/255]
 SeaMask = ListedColormap(stops)
+
+
+## Wind-Heights
+col0 = np.array([ 31,119,180])
+col1 = np.array([255,127, 14])
+col2 = np.array([ 44,160, 44])
+col3 = np.array([214, 39, 40])
+col4 = np.array([148,103,189])
+
+cols = [col0, col1, col2, col3, col4]
+stops = [C/255 for C in cols]
+Ns = [50, 25, 7, 3] #, 28]
+HEIGHTS = mycmap(stops, Ns)
+
 #################################################################################
 
 if __name__ == '__main__':

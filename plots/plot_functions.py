@@ -194,12 +194,13 @@ def plot_colorbar(cmap,delta=4,vmin=0,vmax=60,levels=None,name='cbar',
                           vmin=vmin, vmax=vmax)
    plt.gca().set_visible(False)
    divider = make_axes_locatable(ax)
-   cax = divider.new_vertical(size="2.95%", pad=0.25, pack_start=True)
+   cax = divider.new_vertical(size="5%", pad=0.25, pack_start=True)
+           #2.95%"
    fig.add_axes(cax)
    cbar = fig.colorbar(img, cax=cax, orientation="horizontal")
    cbar.ax.set_xlabel(units,fontsize=fs)
    fig.savefig(f'{name}.png', transparent=True,
-                              bbox_inches='tight', pad_inches=0)
+                              bbox_inches='tight', pad_inches=0.1)
 
 
 def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,show=False):

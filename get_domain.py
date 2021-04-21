@@ -27,7 +27,7 @@ import datetime as dt
 
 fini = 'config.ini'
 
-R,FTP = common.load(fini)
+R = common.load(fini)
 
 
 print(R.domain_folder)

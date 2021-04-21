@@ -23,25 +23,30 @@ from colormaps import WindSpeed, Convergencias, greys, CAPE, Rain
 # fname = choice(files)
 
 import sys
-try: fname = sys.argv[1]
+try: INfname = sys.argv[1]
 except IndexError:
    print('File not specified')
    exit()
 
-OUT_folder = ut.get_outfolder('../config.ini')
-DOMAIN = fname.split('/')[-1].replace('wrfout_','').split('_')[0]
+wrfout_folder, OUT_folder = ut.get_outfolder('../config.ini')
+DOMAIN = INfname.split('/')[-1].replace('wrfout_','').split('_')[0]
 
 
-creation_date = pathlib.Path(fname).stat().st_mtime
+creation_date = pathlib.Path(INfname).stat().st_mtime
 creation_date = dt.datetime.fromtimestamp(creation_date)
+# Report here GFS batch and calculation time
+gfs_batch = open('batch.txt','r').read().strip()
+gfs_batch = dt.datetime.strptime(gfs_batch, '%d/%m/%Y-%H:%M')
+date_label =  'GFS: ' + gfs_batch.strftime('%d/%m/%Y-%H:%Mz') + '\n'
+date_label += 'plot: ' + creation_date.strftime('%d/%m/%Y-%H:%M ')
 
 # Get UTCshift automatically
 UTCshift = dt.datetime.now() - dt.datetime.utcnow()
 UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
 
 
-print('File:',fname)
-ncfile = Dataset(fname)
+print('File:',INfname)
+ncfile = Dataset(INfname)
 
 # Date in UTC
 # prefix to save files
@@ -145,6 +150,15 @@ print('tmn',tmn.shape)
 tsk = wrf.getvar(ncfile, "TSK").metpy.convert_units('degC')
 tsk.attrs['units'] = 'degC'
 print('tsk',tsk.shape)
+
+# lat,lon = 40.87575,-3.68661
+# j,i = wrf.ll_to_xy(ncfile, lat, lon)
+# print('tc:',tc[0,j,i].values)
+# print('t2m:',t2m[j,i].values)
+# print('tmn:',tmn[j,i].values)
+# print('tsk:',tsk[j,i].values)
+# exit()
+
 
 # Planetary Boundary Layer Height____________________________________[m] (ny,nx)
 # Atmospheric Boundary layer thickness above ground
@@ -290,8 +304,7 @@ for place,point in soundings:
    name = f'{OUT_folder}/{HH}_sounding_{place}.png'
    title = f"{place.capitalize()}"
    title += f" {(date+UTCshift).strftime('%d/%m/%Y-%H:%M')}"
-   latlon = f'({lat:.2f},{lon:.2f})'
-   ut.sounding(lat,lon,date,ncfile,pressure,tc,td,t2m,ua,va,latlon,title,fout=name)
+   ut.sounding(lat,lon,lats,lons,date,ncfile,pressure,tc,td,t2m,ua,va,title,fout=name)
 
 
 
@@ -419,26 +432,7 @@ ftitles = open(f'{OUT_folder}/titles.txt','w')
 for prop in ['sfcwind', 'blwind', 'bltopwind', 'hglider', 'wstar', 'zsfclcl',
              'zblcl', 'cape', 'wblmaxmin', 'bldepth', # 'bsratio',
              'rain', 'blcloudpct']:
-   print('*'*80)
-   print('=-'*40)
-   print(prop)
    factor,vmin,vmax,delta,levels,cmap,units = get_properties('plots.ini', prop)
-   # factor = float(props['factor'])
-   # vmin = float(props['vmin'])
-   # vmax = float(props['vmax'])
-   # delta= float(props['delta'])
-   # try: levels = props['levels']
-   # except KeyError: levels = []
-   # if prop == 'wstar':
-   #     print(vmin,vmax,delta)
-   #     print(np.min(wrf_properties[prop]*factor),
-   #           np.max(wrf_properties[prop]*factor))
-   #     print(cmap)
-   #     fig, ax = plt.subplots()
-   #     ax.imshow(wrf_properties[prop]*factor, vmin=vmin,vmax=vmax,
-   #               cmap = colormaps[cmap], origin='lower')
-   #     fig.tight_layout()
-   #     plt.show()
    cmap = colormaps[cmap]   #Convergencias
    title = titles[prop]
    title = f"{title} {(date+UTCshift).strftime('%d/%m/%Y-%H:%M')}"
@@ -447,19 +441,19 @@ for prop in ['sfcwind', 'blwind', 'bltopwind', 'hglider', 'wstar', 'zsfclcl',
    C = PF.scalar_plot(fig,ax,orto, lons,lats,wrf_properties[prop]*factor,
                       delta,vmin,vmax,cmap,
                       levels=levels,
-                      creation_date=creation_date.strftime('%d/%m/%Y-%H:%Mz'))
+                      creation_date=date_label)
    fname = f'{OUT_folder}/{HH}_{prop}.png'
    PF.save_figure(fig,fname,dpi=dpi)
 
    ftitles.write(f"{fname} ; {title}\n")
    PF.plot_colorbar(cmap,delta,vmin,vmax,levels,name=f'{OUT_folder}/{prop}',
-                    units=units,fs=18,norm=None,extend='max')
+                    units=units,fs=15,norm=None,extend='max')
    plt.close('all')
 ftitles.close()
 
 
 ## Vector properties ###########################################################
-names = ['sfc','bl','bltop']
+names = ['sfcwind','blwind','bltopwind']
 winds = [[ua[0,:,:].values, va[0,:,:].values],
          [ublavgwind, vblavgwind],
          [utop, vtop]]
@@ -468,508 +462,18 @@ for wind,name in zip(winds,names):
    fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
    U = wind[0]
    V = wind[1]
-   print(lons.shape)
-   print(lats.shape)
-   print(U.shape)
    PF.vector_plot(fig,ax,orto,lons,lats,U,V, dens=1.5,color=(0,0,0))
    # fname = OUT_folder +'/'+ prefix + name + '_vec.png'
-   fname = f'{OUT_folder}/{HH}_{prop}_vec.png'
+   fname = f'{OUT_folder}/{HH}_{name}_vec.png'
    PF.save_figure(fig,fname,dpi=dpi)
 
-
-exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# levels = [-3,-2, -1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3]
-title = 'BLdepth ' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M')
-told1 = time()
-fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
-print('Base plot:',time()-told1)
-ax.set_title(title, fontsize=fontsize_title)
-ax.text(1,0., creation_date.strftime('%d/%m/%Y-%H:%MUTC'),
-                 va='bottom', ha='right', color='k', fontsize=12,
-                 bbox=dict(boxstyle="round", ec=None, #(1., 1., 1.,0.9),
-                                             fc=(1., 1., 1., 0.9)),
-                 zorder=100, transform=ax.transAxes)
-
-C,cbax = PF.scalar_plot(fig,ax,orto,lons,lats,bldepth,delta,vmin,vmax,cmap)
-
-
-fname = prefix + f'bldepth.png'
-# fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-fig.savefig(fname, transparent=True, bbox_inches='tight',
-                   # pad_inches=0,
-                   dpi=90, quality=90)
-print('bldepth plot:',time()-told)
-print('='*80)
-
-exit()
-
-# WBLmaxmin #####################################################################
-told = time()
-vmin = -3
-vmax = 3
-delta= 0.1
-cmap = Convergencias
-levels = [-3,-2, -1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3]
-title = 'Convergencia ' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M')
-# fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-PF.scalar_plot(fig,ax,orto,lons,lats,wblmaxmin/100,delta,vmin,vmax,cmap,levels=levels)
-ax.set_title(title)
-fig.savefig(prefix + 'wblmaxmin.png')
-print('WBLmaxmin plot:',time()-told)
-
-
-
-
-exit()
-
-
-
-
-# extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-# fig.savefig(prefix + f'bldepth.png', bbox_inches = extent)
-# plt.show()
-# exit()
-
-
-
-
-# Wind ##########################################################################
-told = time()
-vmin = 0
-vmax = 60
-delta = 4
-cmap = WindSpeed
-title = 'Wind ' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M')
-# scalar
-spd = wspd[0,:,:].values * 3.6  #km/h
-clabel = 'km/h'
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-PF.scalar_plot(fig,ax,orto,lons,lats,spd,delta,vmin,vmax,cmap)
-U = ua[0,:,:].values
-V = va[0,:,:].values
-# vector
-PF.vector_plot(fig,ax,orto,lons,lats,U,V,dens=2)
-# n=10
-# ax.barbs(lons[::n,::n].values, lats[::n,::n].values,
-#           U[::n, ::n], V[::n, ::n], color='r',
-#           length=6, pivot='middle',
-#           transform=orto)
-ax.set_title(title)
-fig.savefig(prefix + 'sfcwind.png')
-print('sfcwind plot:',time()-told)
-
-
-# WBLmaxmin #####################################################################
-told = time()
-vmin = -3
-vmax = 3
-delta= 0.1
-cmap = Convergencias
-levels = [-3,-2, -1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3]
-title = 'Convergencia ' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M')
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-PF.scalar_plot(fig,ax,orto,lons,lats,wblmaxmin/100,delta,vmin,vmax,cmap,levels=levels)
-ax.set_title(title)
-fig.savefig(prefix + 'wblmaxmin.png')
-print('WBLmaxmin plot:',time()-told)
-
-
-# Clouds ########################################################################
-told = time()
-# vmin = -3
-# vmax = 3
-# delta= 0.1
-cmap = greys
-# levels = [-3,-2, -1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3]
-# title = 'Convergencia ' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M')
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-C = ax.contourf(lons,lats,low_cloudfrac+mid_cloudfrac+high_cloudfrac,
-                          cmap=cmap, transform=orto,zorder=100)
-ax.set_title('Cloudfrac' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M'))
-fig.colorbar(C)
-fig.tight_layout()
-fig.savefig(prefix + 'cloudfrac.png')
-
-
-# Clouds ########################################################################
-told = time()
-vmin = 200
-vmax = 3800
-cmap = WindSpeed
-delta = 240
-# levels = [-3,-2, -1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3]
-# title = 'Convergencia ' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M')
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-PF.scalar_plot(fig,ax,orto,lons,lats,zblcl,delta,vmin,vmax,cmap)
-ax.set_title('zblcl' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M'))
-fig.savefig(prefix + 'overcast.png')
-
-
-
-# Clouds ########################################################################
-told = time()
-vmin = 200
-vmax = 3800
-cmap = WindSpeed
-delta = 240
-# levels = [-3,-2, -1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3]
-# title = 'Convergencia ' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M')
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-PF.scalar_plot(fig,ax,orto,lons,lats,zsfclcl,delta,vmin,vmax,cmap)
-ax.set_title('zsfclcl' + (date+UTCshift).strftime('%d/%m/%Y-%H:%M'))
-fig.savefig(prefix + 'overcast2.png')
-
-exit()
-
-
-
-
-
-
-
-
-
-
-# print(np.min(low_cloudfrac).values, np.max(low_cloudfrac).values)
-# print(np.min(mid_cloudfrac).values, np.max(mid_cloudfrac).values)
-# print(np.min(high_cloudfrac).values, np.max(high_cloudfrac).values)
-# ax.contourf(lats,lons,low_cloudfrac,  c='C1', transform=orto)
-# ax.contourf(lats,lons,mid_cloudfrac,  c='C2', transform=orto)
-# ax.contourf(lats,lons,high_cloudfrac, c='C3', transform=orto)
-   # C = ax.contourf(lons,lats,prop, levels=levels, extend='max',
-   #                                 antialiased=True, norm=norm,
-   #                                 cmap=cmap, vmin=vmin, vmax=vmax,
-   #                                 alpha=0.5, transform=orto)
-# PF.scalar_plot(fig,ax,orto,lons,lats,wblmaxmin/100,delta,vmin,vmax,cmap,levels=levels)
-# ax.set_title(title)
-fig.savefig(prefix + 'clouds.png')
-# print('WBLmaxmin plot:',time()-told)
-
-exit()
-
-
-
-################################### OBSOLETE ###################################
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-ax.scatter([lons[0,0],lons[0,0],lons[-1,-1],lons[-1,-1]],
-           [lats[0,0],lats[-1,-1],lats[0,0],lats[-1,-1]],
-           s=90,c='g', label='lat/lon', transform=orto)
-ax.scatter([left,left,right,right],
-           [bottom,top,bottom,top],s=30,c='r', label='lat/lon max/min',
-           transform=orto)
-left   = bounds.bottom_left.lon
-right  = bounds.top_right.lon
-bottom = bounds.bottom_left.lat
-top    = bounds.top_right.lat
-ax.scatter([left,left,right,right],
-           [bottom,top,bottom,top],s=20,c='b', label='bound', transform=orto)
-
-ax.contourf(lons,lats,terrain, alpha=0.5, transform=orto)
-plt.show()
-
-exit()
-
-
-
-
-
-
-
-
-
-
-# Wind
-slp = wrf.getvar(ncfile, "slp", units='mb')   # Sea Level Pressure
-pressure = wrf.getvar(ncfile, "pressure")     # Pressure (hPa)
-tc = wrf.getvar(ncfile, "tc")                 # temperature (Celsius)
-ua = wrf.getvar(ncfile, "ua",units='km h-1')  # U wind component
-va = wrf.getvar(ncfile, "va",units='km h-1')  # V wind component
-wa = wrf.getvar(ncfile, "wa",units='km h-1')  # W wind component
-#alternative
-# wspd,wdir = wrf.getvar(ncfile, "wspd_wdir",units='km h-1')  # W wind component
-wspd = np.sqrt(ua*ua + va*va ) # + wa*wa)
-
-# Clouds
-low_cloudfrac  = wrf.getvar(ncfile, "low_cloudfrac")
-mid_cloudfrac  = wrf.getvar(ncfile, "mid_cloudfrac")
-high_cloudfrac = wrf.getvar(ncfile, "high_cloudfrac")
-
-# CAPE
-cape2d = wrf.getvar(ncfile, "cape_2d")
-MCAPE = cape2d[0,:,:]  # CAPE
-MCIN = cape2d[1,:,:]   #CIN
-LCL =cape2d[2,:,:]   # Cloud base when forced lifting occurs
-
-LFC =cape2d[3,:,:]   # Level of Free Convection. Altitude in the atmosphere
-                     # where the temperature of the environment decreases faster
-                     # than the moist adiabatic lapse rate of a saturated air
-                     # parcel at the same level. 
-cape3d = wrf.getvar(ncfile, "cape_3d")
-CAPE3d = cape3d[0,:,:,:]
-CIN3d = cape3d[1,:,:,:]
-
-print(MCAPE.shape)
-print(CAPE3d.shape)
-
-
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-# ax.contourf(lons,lats,MCAPE, alpha=0.5, transform=orto)
-# ax.contourf(lons,lats,wspd[0,:,:], vmin=0,vmax=60, extend='max',
-#                                   cmap = WindSpeed,
-#                                   alpha=0.5, zorder=10,
-#                                   transform=orto)
-ax.scatter(lons,lats,c=wspd[0,:,:], vmin=0,vmax=60, #extend='max',
-                                  cmap = WindSpeed,
-                                  alpha=0.5, zorder=10,
-                                  transform=orto)
-ax.set_title('CAPE')
-
-
-
-
-plt.show()
-exit()
-
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-ax.contourf(lons,lats,CAPE3d[0,:,:], alpha=0.5, transform=orto)
-ax.set_title('CAPE3d (0)')
-
-
-
-
-fig, ax, orto = PF.base_plot(reflat,reflon,left,right,bottom,top)
-ax.contourf(lons,lats,wspd[0,:,:], vmin=0,vmax=60, extend='max',
-                                  cmap = WindSpeed,
-                                  alpha=0.5, zorder=10,
-                                  transform=orto)
-ax.set_title('Wind')
-
-plt.show()
-exit()
-x = lons[0,:].values
-y = lats[:,0].values
-U = ua[0,:,:].values
-V = va[0,:,:].values
-dens = 1.5
-ax.streamplot(x,y, U,V, color=(0,0,0,0.75), linewidth=1, density=dens,
-                        arrowstyle='->',arrowsize=2.5,
-                        zorder=11,
-                        transform=orto)
-
-n=10
-ax.barbs(lons[::n,::n].values, lats[::n,::n].values,
-          U[::n, ::n], V[::n, ::n], color='r',
-          length=6, pivot='middle',
-          transform=orto)
-
-plt.show()
-
-
-
-
-exit()
-
-from matplotlib import gridspec
-fig = plt.figure()
-gs = gridspec.GridSpec(2, 1)
-fig.subplots_adjust() #wspace=0.1,hspace=0.1)
-ax1 = plt.subplot(gs[0,0])
-ax2 = plt.subplot(gs[1,0])
-ax1.scatter(lons,lats,c=heights[:,:,0],vmin=0,vmax=2300)
-ax2.scatter(lons,lats,c=terrain,vmin=0,vmax=2300)
-ax1.scatter(-5.798180335840546, 40.19957065875734,s=100,c='r')
-ax2.scatter(-5.798180335840546, 40.19957065875734,s=100,c='r')
-ax1.set_aspect('equal')
-ax2.set_aspect('equal')
-fig.tight_layout()
-plt.show()
-
-
-# exit()
-
-slp = wrf.getvar(ncfile, "slp", units='mb')   # Sea Level Pressure
-z = wrf.getvar(ncfile, "z", units='m')        # Geopotential Height
-pressure = wrf.getvar(ncfile, "pressure")     # Pressure (hPa)
-tc = wrf.getvar(ncfile, "tc")                 # temperature (Celsius)
-ua = wrf.getvar(ncfile, "ua",units='km h-1')  # U wind component
-va = wrf.getvar(ncfile, "va",units='km h-1')  # V wind component
-wa = wrf.getvar(ncfile, "wa",units='km h-1')  # W wind component
-wspd_wdir = wrf.getvar(ncfile, "wspd_wdir", units='km h-1')
-print(ua.shape)
-print(wspd_wdir.shape)
-WW = np.sqrt(ua*ua+va*va)
-print(np.max(np.abs(wspd_wdir[0,0,:,:]-WW)))
-from matplotlib import gridspec
-fig = plt.figure()
-gs = gridspec.GridSpec(2, 1)
-fig.subplots_adjust() #wspace=0.1,hspace=0.1)
-ax1 = plt.subplot(gs[0,0])
-ax2 = plt.subplot(gs[1,0])
-ax1.imshow(WW[0,:,:])
-ax2.imshow(wspd_wdir[0,0,:,:])
-fig.tight_layout()
-plt.show()
-
-# exit()
-uv10        = getvar(ncfile, "uvmet10")
-wspd_wdir10 = getvar(ncfile, "wspd_wdir10")
-cape_2d = getvar(ncfile, "cape_2d")
-cloudfrac = getvar(ncfile, "cloudfrac") # clouds
-ctt = getvar(ncfile, "ctt") # Cloud Top Temperature
-pw = getvar(ncfile, "pw")# Precipitable water
-bldepth = getvar(ncfile, "PBLH")#bl depth (metres)
-ter = getvar(ncfile, "HGT")#Terrain Height (metres)
-qcloud = getvar(ncfile, "QCLOUD")#"Cloud water mixing ratio"
-t2 = getvar(ncfile, "T2")# TEMP at 2 M
-uv = getvar(ncfile, "uvmet") # u,v NOT rotated to grid   in m/s
-p = getvar(ncfile, "P") #"perturbation pressure"
-pb = getvar(ncfile, "PB") #"BASE STATE PRESSURE"
-hfx = getvar(ncfile, "HFX") #for sfc. sensible heat flux in w/m2        142
-thetac = getvar(ncfile, "T")+ 26.85 #"perturbation potential tempera    ture theta-t0"
-qvapor = getvar(ncfile, "QVAPOR") #"Water vapor mixing ratio"
-vhf = getvar(ncfile, "LH") #"LATENT HEAT FLUX AT THE SURFACE"
-td = getvar(ncfile, "td") #dew point temperature (C)
-td2 = getvar(ncfile, "td2") #dew point temperature at 2 M (C)
-snow = getvar(ncfile, "SNOW")#"SNOW WATER EQUIVALENT"
-rainc = getvar(ncfile, "RAINC")#"ACCUMULATED TOTAL CUMULUS PRECIPIT    ATION"
-rainnc = getvar(ncfile, "RAINNC")#"ACCUMULATED TOTAL GRID SCALE PRE    CIPITATION"
-snowh = getvar(ncfile, "SNOWH")#"PHYSICAL SNOW DEPTH"
-
-pblh = bldepth
-#lats, lons = latlon_coords(slp)
-lats = getvar(ncfile, "XLAT")
-lons = getvar(ncfile, "XLONG")
-dx = slp.projection.dx
-dy = slp.projection.dy
-
-
-
-U = wrf.to_np(ua[0,:,:]) * 3.6  #km/h
-V = wrf.to_np(va[0,:,:]) * 3.6  #km/h
-windspd = np.sqrt(U*U + V*V)
-
-left   = np.min(wrf.to_np(lons))
-right  = np.max(wrf.to_np(lons))
-bottom = np.min(wrf.to_np(lats))
-top    = np.max(wrf.to_np(lats))
-
-
-
-def plot_scalar(lats,lons,prop,title=''):
-   fig, ax = plt.subplots()
-   ax.contourf(lons,lats,prop)
-   if len(title)>0:
-      ax.set_title(title)
-   fig.tight_layout()
-   plt.show()
-
-
-
-
-# BL Max Up/Down motion
-# wa   = wa.transpose()
-# z    = z.transpose()
-# ter  = ter.transpose()
-# pblh = pblh.transpose()
-wblMxMn = drjack.calc_wblmaxmin(0,wa,z,ter,pblh)
-
-
-laglcwbase = 1
-# criteriondegc = 1.0
-maxcwbasem = 5486.40
-cwbasecriteria = 0.000010
-
-blcwbase = drjack.calc_blcloudbase( qcloud, z, ter, pblh, cwbasecriteria, maxcwbasem, laglcwbase)
-print(blcwbase)
-
-
-
-zsfclcl = drjack.calc_sfclclheight( p,t,td,z,ter,pblh )
-print(zsfclcl)
-
-
-uEW = uv[:,:,:,0]
-vNS = uv[:,:,:,1]
-ublavgwind = drjack.calc_blavg(uEW,z,ter,pblh)
-vblavgwind = drjack.calc_blavg(vNS,z,ter,pblh)
-print(ublavgwind)
-print(vblavgwind)
-
-
-
-
-wstar = drjack.calc_wstar( hfx, pblh )
-print(wstar)
-# plot_scalar(lats,lons,wstar,title='wstar')
-
-
-
-# XXX NOT DEFINED????
-# wstar = drjack.calc_blmax( a,z,ter,pblh, bparam )
-# print(wstar)
-# plot_scalar(lats,lons,wstar,title='blmax')
-
-
-hcrit = drjack.calc_hcrit( wstar, ter, pblh)
-print(hcrit)
-# plot_scalar(lats,lons,wstar,title='hcrit')
-
-
-utop,vtop = drjack.calc_bltopwind(uEW,vNS,z,ter,pblh  )
-# plot_scalar(lats,lons,np.sqrt(utop*utop+vtop*vtop),title='Wind top')
-
-
-
-pmb=var = 0.01*(p.values+pb.values) # press is vertical coordinate in mb
-
-blcldpct = drjack.calc_subgrid_blcloudpct_grads( qvapor, qcloud, t,pmb, z, ter, pblh, cwbasecriteria  )
-plot_scalar(lats,lons,blcldpct,title='blcldpct')
-
-
-exit()
-
-
-
-
-
-
-
-
-
-
-
-########################################
-exit()
-print(np.min(wblMxMn), np.max(wblMxMn))
-
-fig, ax = plt.subplots()
-A = ax.contourf(lons.transpose(),lats.transpose(),wblMxMn/100,
-            extend='max',
-            levels=[-3,-2,-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1,2,3],
-            vmin=-3,vmax=3,
-            cmap=Convergencias)
-
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-divider = make_axes_locatable(ax)
-cax = divider.new_vertical(size="2.95%", pad=0.25, pack_start=True)
-fig.add_axes(cax)
-cbar = fig.colorbar(A, cax=cax, orientation="horizontal")
-# cbar.ax.set_xlabel(units,fontsize=fs)
-
-fig.tight_layout()
-plt.show()
+#XXX shouldn't do this here
+wrfout_folder += gfs_batch.strftime('/%Y/%m/%d/%H')
+com = f'mkdir -p {wrfout_folder}'
+print('****')
+print(com)
+os.system(com)
+com = f'mv {INfname} {wrfout_folder}'
+print('****')
+print(com)
+os.system(com)

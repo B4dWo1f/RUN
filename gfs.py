@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 import os
+here = os.path.dirname(os.path.realpath(__file__))
 import datetime as dt
 import numpy as np
 from ftplib import FTP
@@ -89,6 +90,8 @@ def get_files(Params, dates, data_folder='data'):
 ### Download
    LG.info(f"Correct GFS batch: {batch.strftime('%Y%m%d/%H')}")
    LG.info(f"Starting download of GFS data")
+   with open(f'{here}/plots/batch.txt','w') as f_batch:
+       f_batch.write(batch.strftime(fmt))
    # Prepare all inputs for parallel download
    urls,files = [],[]
    for date in dates:

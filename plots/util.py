@@ -10,6 +10,7 @@ else: print('Already compiled')
 import drjack
 import wrf
 import sounding_plot as SP
+import numpy as np
 
 from configparser import ConfigParser, ExtendedInterpolation
 from os.path import expanduser
@@ -23,8 +24,9 @@ def get_outfolder(fname):
    config = ConfigParser(inline_comment_prefixes='#')
    config._interpolation = ExtendedInterpolation()
    config.read(fname)
+   wrfout_folder = expanduser(config['run']['output_folder'])
    plots_folder = expanduser(config['run']['plots_folder'])
-   return plots_folder
+   return wrfout_folder, plots_folder
 
 
 
@@ -94,8 +96,8 @@ def calc_bltopwind(uEW,vNS,heights,terrain,bldepth):
 
 
 
-def sounding(lat,lon,date,ncfile,pressure,tc,td,t0,ua,va,
-                                       latlon='',title='',fout='sounding.png'):
+def sounding(lat,lon,lats,lons,date,ncfile,pressure,tc,td,t0,ua,va,
+                                                 title='',fout='sounding.png'):
    """
    lat,lon: spatial coordinates for the sounding
    date: UTC date-time for the sounding
@@ -107,15 +109,37 @@ def sounding(lat,lon,date,ncfile,pressure,tc,td,t0,ua,va,
    va: Model Y wind (m/s)
    fout: save fig name
    """
-   j,i = wrf.ll_to_xy(ncfile, lat, lon)
+   i,j = wrf.ll_to_xy(ncfile, lat, lon)  # returns w-e, n-s
    # Get sounding data for specific location
    # h = heights[:,i,j]
-   p = pressure[:,i,j]
-   tc = tc[:,i,j]
-   tdc = td[:,i,j]
-   t0 = t0[i,j]
-   u = ua[:,i,j]
-   v = va[:,i,j]
+   latlon = f'({lats[j,i].values:.3f},{lons[j,i].values:.3f})'
+   nk,nj,ni = pressure.shape
+   p = pressure[:,j,i]
+   tc = tc[:,j,i]
+   tdc = td[:,j,i]
+   u = ua[:,j,i]
+   v = va[:,j,i]
+   # XXX Warning!! averaging!!
+   do_avg = False
+   if do_avg:
+      N = 1
+      i0 = np.clip(i.values-N,0,ni)
+      i1 = np.clip(i.values+N,0,ni)
+      j0 = np.clip(j.values-N,0,nj)
+      j1 = np.clip(j.values+N,0,nj)
+      t0 = t0[j0:j1,i0:i1]
+   else:
+      t0 = t0[j,i]
+   # print('   i:',i0,i1)
+   # print('   j:',j0,j1)
+   # import matplotlib.pyplot as plt
+   # try: plt.style.use('mystyle')
+   # except: pass
+   # fig, ax = plt.subplots()
+   # ax.imshow(pressure[0,:,:], origin='lower')
+   # ax.scatter(i,j,s=100,c='r')
+   # fig.tight_layout()
+   # plt.show()
 
    fig,ax = SP.skewt_plot(p,tc,tdc,t0,date,u,v,
                                           latlon=latlon,title=title,show=False)
