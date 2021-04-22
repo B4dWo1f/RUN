@@ -76,20 +76,38 @@ ls ${FOLDER_INSTALL}/WRF/run/namelist.*
 #### Download GFS data
 echo "Downloading GFS data"
 time python3 download_gfs_data.py
-echo "GFS data downloaded to ${GFSdata}"
-ls "${GFSdata}"
+if [ $? -eq 0 ]; then
+   echo "GFS data downloaded to ${GFSdata}:"
+   ls "${GFSdata}"
+else
+   1>&2 echo "Error downloading GFS data"
+   exit 1
+fi
 )
+# Check Input and GFS section
+if [ $? -eq 0 ]; then
+   echo_success 'Input & GFS'
+else
+   echo_fail "Error in Input or GFS data"
+   exit 1
+fi
 
 
 (
 #### WPS
 cd "$FOLDER_INSTALL/WPS"
 echo "Running geogrid"
-time ./geogrid.exe >& log.geogrid && tail log.geogrid
-echo "Geogrid geo_met* files:"
-ls $DOMAIN/geo_em*
-./link_grib.csh ../dataGFS/
-# XXX ADD checking point
+time ./geogrid.exe >& log.geogrid
+grep "Successful completion of geogrid" log.geogrid
+if [ $? -eq 0 ]; then
+   echo "Geogrid was successful"
+   echo "Geogrid geo_met* files:"
+   ls $DOMAIN/geo_em*
+   ./link_grib.csh ../dataGFS/
+else
+   1>&2 echo "Error running Geogrid"
+   exit 1
+fi
 
 echo "Running ungrib"
 ln -sf ungrib/Variable_Tables/Vtable.GFS Vtable
@@ -100,10 +118,23 @@ ls FILE*
 
 echo "Running metgrid"
 time ./metgrid.exe >& log.metgrid && tail log.metgrid
-echo 'Metgrid met_em* files:'
-ls $DOMAIN/met_em*
-# XXX ADD checking point
+grep -i "Successful completion of program metgrid.exe" metgrid.log
+if [ $? -eq 0 ]; then
+   echo "Metgrid was successful"
+   echo 'Metgrid met_em* files:'
+   ls $DOMAIN/met_em*
+else
+   1>&2 echo "Error running Metgrid"
+   exit 1
+fi
 )
+# Check WPS codes
+if [ $? -eq 0 ]; then
+   echo_sucess "WPS run Ok."
+else
+   echo_faile "Error during WPS steps"
+   exit 1
+fi
 
 
 (
@@ -116,25 +147,30 @@ ls met_em*
 echo -e "\nStarting real.exe"
 time mpirun -np 1 ./real.exe
 tail -n 1 rsl.error.0000 | grep -w SUCCESS
-if [ $? -ne 0 ]
-then
-   1>&2 echo "Error running real.exe"
-else
+if [ $? -eq 0 ]; then
    echo "REAL worked!!"
+else
+   1>&2 echo "Error running real.exe"
 fi
 
 # WRF
 echo -e "\nStarting wrf.exe"
 time mpirun -np $Ncores ./wrf.exe
 tail -n 1 rsl.error.0000 | grep -w SUCCESS
-if [ $? -ne 0 ]
-then
-   1>&2 echo "Error running wrf.exe"
-else
+if [ $? -eq 0 ]; then
    echo "WRF worked!!"
+else
+   1>&2 echo "Error running wrf.exe"
 fi
 
 mkdir -p "${OUTdata}"
 rm wrfoutReady*
 # mv wrfout_* "${OUTdata}"
 )
+# Check WRF
+if [ $? -eq 0 ]; then
+   echo_success "WRF run Ok."
+else
+   echo_fail "Error during WRF steps"
+   exit 1
+fi

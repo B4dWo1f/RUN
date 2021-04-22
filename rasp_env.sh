@@ -24,3 +24,11 @@ export LD_LIBRARY_PATH=$DIR/grib2/lib:$LD_LIBRARY_PATH
 # echo
 # echo "current PATH:"
 # echo $PATH
+
+function echo_success() {
+   echo SUCCESS: $1
+}
+
+function echo_fail() {
+   echo ERROR: $1
+}

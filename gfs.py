@@ -36,6 +36,7 @@ def checker(folder,files,mode='ftp'):
    Check if the remote `folder` is hosting all the `files`
    USE mode=ftp!!!!
    """
+   LG.debug(f'Checking files in {mode} server')
    folder = f'pub/data/nccf/com/gfs/prod/{folder}/atmos'
    # Get remote list of files
    if mode == 'ftp':
@@ -103,7 +104,9 @@ def get_files(Params, dates, data_folder='data'):
    ##    status = download_file(*inp)
    ##    # sleep(1)
    # Parallel option. The server seems to penalize this option
-   pool = Pool(4)
+   npool =int(min([len(all_inps)/2,10])) 
+   LG.debug(f'Starting download with {npool} requests in parallel')
+   pool = Pool(npool)
    remaining = all_inps
    Ntries = 5
    cont = 0
@@ -209,15 +212,24 @@ def download_file(url,fout):
 class myFTPError(Exception):
    pass
 
-def make_login(server,credentials=None):
+def make_login(server,credentials=None,Ntries=10):
    """
    Make a python-FTP connection to the FPT server
    """
    LG.debug(f'Connecting to {server}')
-   try: ftp = FTP(server)
-   except:
-      raise  myFTPError('The server cannot be reached')
-   LG.debug('Connecion sucessful')
+   out = False
+   cont = 0
+   while not out and cont <= Ntries:
+      try:
+         LG.info(f'FTP attempt {cont}/{Ntries}')
+         ftp = FTP(server, timeout=5)
+         out = True
+      except:
+         LG.warning(f'Unable to connect to {server} ({cont}/{Ntries})')
+         sleep(1)
+      cont += 1
+   if not out: raise myFTPError('The server cannot be reached')
+   LG.debug('Connection successful')
 
    if credentials == None:
       ftp.login()

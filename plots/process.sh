@@ -2,7 +2,6 @@
 
 FOLDER=/storage/WRFOUT/Spain6_1
 
-mkdir -p ${FOLDER}/processed
 for file in `ls ${FOLDER}/wrfout_*`
 do
    echo $file
