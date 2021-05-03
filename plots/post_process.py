@@ -14,6 +14,9 @@ is_cron = False
 
 import pathlib
 import numpy as np
+import matplotlib as mpl
+mpl.use('Agg')
+
 import matplotlib.pyplot as plt
 import datetime as dt
 from netCDF4 import Dataset
@@ -70,7 +73,7 @@ ncfile = Dataset(INfname)
 # prefix to save files
 date = str(wrf.getvar(ncfile, 'times').values)
 date = dt.datetime.strptime(date[:-3], '%Y-%m-%dT%H:%M:%S.%f')
-LG.info('Forecat for: {date}')
+LG.info(f'Forecast for: {date}')
 
 # Variables for saving outputs
 OUT_folder = '/'.join([OUT_folder,DOMAIN,date.strftime('%Y/%m/%d')])
@@ -382,9 +385,11 @@ def get_properties(fname,section):
 
 # Background plots #############################################################
 ## Terrain 
+LG.debug('plotting terrain')
 fig,ax,orto = PF.terrain_plot(reflat,reflon,left,right,bottom,top)
 fname = f'{OUT_folder}/terrain.png'
 PF.save_figure(fig,fname,dpi=dpi)
+LG.info('plotted terrain')
 
 # ## Ocean
 # fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
@@ -393,46 +398,60 @@ PF.save_figure(fig,fname,dpi=dpi)
 #                    pad_inches=0, #dpi=90,
 #                    quality=90)
 ## Parallel and meridian
+LG.debug('plotting meridians')
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.parallel_and_meridian(fig,ax,orto,left,right,bottom,top)
 fname = f'{OUT_folder}/meridian.png'
 PF.save_figure(fig,fname,dpi=dpi)
+LG.info('plotted meridians')
 
 ## Rivers
+LG.debug('plotting rivers')
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.rivers_plot(fig,ax,orto)
 fname = f'{OUT_folder}/rivers.png'
 PF.save_figure(fig,fname,dpi=dpi)
+LG.info('plotted rivers')
 
 ## CCAA
+LG.debug('plotting ccaa')
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.ccaa_plot(fig,ax,orto)
 fname = f'{OUT_folder}/ccaa.png'
 PF.save_figure(fig,fname,dpi=dpi)
+LG.info('plotted ccaa')
 
 ## Cities
+LG.debug('plotting cities')
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.csv_plot(fig,ax,orto,f'{here}/cities.csv')
 fname = f'{OUT_folder}/cities.png'
 PF.save_figure(fig,fname,dpi=dpi)
+LG.info('plotted cities')
 
 ## Citiy Names
+LG.debug('plotting cities names')
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.csv_names_plot(fig,ax,orto,f'{here}/cities.csv')
 fname = f'{OUT_folder}/cities_names.png'
 PF.save_figure(fig,fname,dpi=dpi)
+LG.info('plotted cities names')
 
 ## Takeoffs 
+LG.debug('plotting takeoffs')
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.csv_plot(fig,ax,orto,f'{here}/takeoffs.csv')
 fname = f'{OUT_folder}/takeoffs.png'
 PF.save_figure(fig,fname,dpi=dpi)
+LG.info('plotted takeoffs')
 
 ## Takeoffs Names
+LG.debug('plotting takeoffs names')
 fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
 PF.csv_names_plot(fig,ax,orto,f'{here}/takeoffs.csv')
 fname = f'{OUT_folder}/takeoffs_names.png'
 PF.save_figure(fig,fname,dpi=dpi)
+LG.info('plotted takeoffs names')
 
 
 # Properties ###################################################################
@@ -464,6 +483,7 @@ ftitles = open(f'{OUT_folder}/titles.txt','w')
 for prop in ['sfcwind', 'blwind', 'bltopwind', 'hglider', 'wstar', 'zsfclcl',
              'zblcl', 'cape', 'wblmaxmin', 'bldepth', # 'bsratio',
              'rain', 'blcloudpct']:
+   LG.debug(f'plotting {prop}')
    factor,vmin,vmax,delta,levels,cmap,units = get_properties('plots.ini', prop)
    cmap = colormaps[cmap]   #Convergencias
    title = titles[prop]
@@ -476,10 +496,13 @@ for prop in ['sfcwind', 'blwind', 'bltopwind', 'hglider', 'wstar', 'zsfclcl',
                       creation_date=date_label)
    fname = f'{OUT_folder}/{HH}_{prop}.png'
    PF.save_figure(fig,fname,dpi=dpi)
+   LG.info(f'plotted {prop}')
 
+   LG.debug('plotting colorbar')
    ftitles.write(f"{fname} ; {title}\n")
    PF.plot_colorbar(cmap,delta,vmin,vmax,levels,name=f'{OUT_folder}/{prop}',
                     units=units,fs=15,norm=None,extend='max')
+   LG.info('plotted colorbar')
    plt.close('all')
 ftitles.close()
 
@@ -491,6 +514,7 @@ winds = [[ua10.values, va10.values],
          [utop, vtop]]
 
 for wind,name in zip(winds,names):
+   LG.debug(f'Plotting vector {name}')
    fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
    U = wind[0]
    V = wind[1]
@@ -498,6 +522,7 @@ for wind,name in zip(winds,names):
    # fname = OUT_folder +'/'+ prefix + name + '_vec.png'
    fname = f'{OUT_folder}/{HH}_{name}_vec.png'
    PF.save_figure(fig,fname,dpi=dpi)
+   LG.info(f'Plotted vector {name}')
 
 #XXX shouldn't do this here
 wrfout_folder += gfs_batch.strftime('/%Y/%m/%d/%H')

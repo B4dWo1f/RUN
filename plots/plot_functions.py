@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import matplotlib as mpl
+mpl.use('Agg')
 import os
 here = os.path.dirname(os.path.realpath(__file__))
 import numpy as np
@@ -218,6 +220,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 def plot_colorbar(cmap,delta=4,vmin=0,vmax=60,levels=None,name='cbar',
                                         units='',fs=18,norm=None,extend='max'):
    fig, ax = plt.subplots()
+   fig.set_figwidth(11)
    img = np.random.uniform(vmin,vmax,size=(40,40))
    if len(levels) == 0:
       levels=np.arange(vmin,vmax,delta)

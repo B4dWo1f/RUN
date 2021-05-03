@@ -37,7 +37,7 @@ daily_hours = [start,end]
 folder = '~/METEO'
 domain = 'Spain6_1'
 domains = 1,2   #XXX this should be automatic
-Ncores = 32
+Ncores = 26
 left,right = -17,8
 bottom,top = 30,48
 

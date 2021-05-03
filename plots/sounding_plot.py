@@ -1,6 +1,13 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import matplotlib as mpl
+mpl.use('Agg')
+
+import log_help
+import logging
+LG = logging.getLogger(__name__)
+
 import numpy as np
 import matplotlib.pyplot as plt
 from metpy.plots import SkewT, Hodograph
@@ -10,9 +17,6 @@ import matplotlib.lines as mlines
 import metpy.calc as mpcalc
 from matplotlib import gridspec
 from colormaps import HEIGHTS
-import log_help
-import logging
-LG = logging.getLogger(__name__)
 
 
 # import os
@@ -25,7 +29,6 @@ LG = logging.getLogger(__name__)
 # from matplotlib.colors import LightSource, BoundaryNorm
 
 ## Dark Theme ##################################################################
-import matplotlib as mpl
 # #  COLOR = 'black'
 # #  ROLOC = '#e0e0e0'
 mpl.rcParams['font.family'] = 'serif'
@@ -78,6 +81,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       if u.attrs['units'] != 'm s-1':
          print('Wind wrong units')
          exit()
+   LG.info('Inside skewt plot')
    p = p.values
    tc = tc.values
    tdc = tdc.values
@@ -85,14 +89,20 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
    u = u.values * 3.6  # km/h
    v = v.values * 3.6  # km/h
    # Grid plot
+   LG.info('creating figure')
    fig = plt.figure(figsize=(11, 12))
+   LG.info('created figure')
+   LG.info('creating axis')
    gs = gridspec.GridSpec(1, 4)
    fig.subplots_adjust(wspace=0.,hspace=0.)
    # ax1 = plt.subplot(gs[1:-1,0])
    # Adding the "rotation" kwarg will over-ride the default MetPy rotation of
    # 30 degrees for the 45 degree default found in NCL Skew-T plots
+   LG.info('created axis')
+   LG.info('Creatin SkewT')
    skew = SkewT(fig, rotation=45, subplot=gs[0,0:-1])
    ax = skew.ax
+   LG.info('Created SkewT')
 
    if len(latlon) > 0:
        ax.text(0,1, latlon, va='top', ha='left', color='k',
@@ -102,6 +112,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
    # Plot the data, T and Tdew vs pressure
    skew.plot(p, tc, 'C3')
    skew.plot(p, tdc, 'C0')
+   LG.info('plotted dew point and sounding')
 
    # LCL
    lcl_pressure, lcl_temperature = mpcalc.lcl(p[0]*units.hPa,
@@ -115,6 +126,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
                                        tdc[0]* units.degC).to('degC')
    # Plot the parcel profile as a black line
    skew.plot(p, parcel_prof, 'k', linewidth=2)
+   LG.info('plotted parcel profile')
 
    # shade CAPE and CIN
    skew.shade_cape(p* units.hPa,
@@ -123,8 +135,10 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
                   tc * units.degC,
                   parcel_prof,
                   tdc * units.degC)
+   LG.info('plotted CAPE and CIN')
 
    if type(u) != type(None) and type(v) != type(None):
+      LG.info('Plotting wind')
       ax2 = plt.subplot(gs[0,-1], sharey=ax)
       # ax2.yaxis.set_visible(False)
       ax2.yaxis.tick_right()
@@ -187,6 +201,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       h = Hodograph(ax_hod, component_range=L)
       h.add_grid(increment=20)
       h.plot_colormapped(-u, -v, p, cmap=HEIGHTS)  #'viridis_r')  # Plot a line colored by pressure (altitude)
+      LG.info('Plotted wind')
 
 
 
@@ -221,6 +236,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
 
    # Add relevant special lines
    # Choose starting temperatures in Kelvin for the dry adiabats
+   LG.info('Plot adiabats, and other grid lines')
    t0 = units.K * np.arange(243.15, 473.15, 10)
    skew.plot_dry_adiabats(t0=t0, linestyles='solid', colors='gray', linewidth=1)
 
@@ -238,6 +254,8 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
    p_levs = units.hPa * np.linspace(1000, 400, 7)
    skew.plot_mixing_lines(mixing_ratio=w, pressure=p_levs,
                           linestyle='dotted',linewidths=1, colors='lime')
+
+   LG.info('Plotted adiabats, and other grid lines')
 
    skew.ax.set_ylim(1000, 150)
    skew.ax.set_xlim(-30, 30)
@@ -260,5 +278,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
    else:
        ax.set_title(title, fontsize=20)
    if show: plt.show()
+   LG.info('saving')
    fig.savefig(fout, bbox_inches='tight', pad_inches=0.1, dpi=150, quality=90)
+   LG.info('saved')
    plt.close('all')

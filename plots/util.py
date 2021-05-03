@@ -1,6 +1,10 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import log_help
+import logging
+LG = logging.getLogger(__name__)
+
 # Recompile DrJack's Fortran if necessary
 import os
 diff = os.popen('diff drjack.f90 .drjack.f90').read().strip()
@@ -109,6 +113,7 @@ def sounding(lat,lon,lats,lons,date,ncfile,pressure,tc,td,t0,ua,va,
    va: Model Y wind (m/s)
    fout: save fig name
    """
+   LG.info('Starting sounding')
    i,j = wrf.ll_to_xy(ncfile, lat, lon)  # returns w-e, n-s
    # Get sounding data for specific location
    # h = heights[:,i,j]
@@ -140,6 +145,7 @@ def sounding(lat,lon,lats,lons,date,ncfile,pressure,tc,td,t0,ua,va,
    # ax.scatter(i,j,s=100,c='r')
    # fig.tight_layout()
    # plt.show()
+   LG.info('calling skewt plot')
    SP.skewt_plot(p,tc,tdc,t0,date,u,v,fout=fout,latlon=latlon,title=title)
    # fig.savefig(fout)
 

@@ -93,6 +93,9 @@ def get_files(Params, dates, data_folder='data'):
    LG.info(f"Starting download of GFS data")
    with open(f'{here}/plots/batch.txt','w') as f_batch:
        f_batch.write(batch.strftime(fmt))
+   LG.critical(f'{Params.output_folder}/batch.txt')
+   with open(f'{Params.output_folder}/batch.txt','w') as f_batch:
+       f_batch.write(batch.strftime(fmt))
    # Prepare all inputs for parallel download
    urls,files = [],[]
    for date in dates:
