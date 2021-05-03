@@ -1,62 +1,81 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
-import os
-here = os.path.dirname(os.path.realpath(__file__))
-import util as ut
-
-import pathlib
-import numpy as np
-import matplotlib.pyplot as plt
-# try: plt.style.use('rasp')
-# except: pass
-import datetime as dt
-import wrf
-from netCDF4 import Dataset
-import metpy
-import rasterio
-from rasterio.merge import merge
-from colormaps import WindSpeed, Convergencias, greys, CAPE, Rain
-
-# from random import choice
-# files = os.popen('ls wrfout_d01_2021-04-10*').read().strip().splitlines()
-# fname = choice(files)
-
 import sys
 try: INfname = sys.argv[1]
 except IndexError:
    print('File not specified')
    exit()
-
-wrfout_folder, OUT_folder = ut.get_outfolder('../config.ini')
 DOMAIN = INfname.split('/')[-1].replace('wrfout_','').split('_')[0]
 
+import os
+here = os.path.dirname(os.path.realpath(__file__))
+is_cron = False
 
-creation_date = pathlib.Path(INfname).stat().st_mtime
-creation_date = dt.datetime.fromtimestamp(creation_date)
-# Report here GFS batch and calculation time
-gfs_batch = open('batch.txt','r').read().strip()
-gfs_batch = dt.datetime.strptime(gfs_batch, '%d/%m/%Y-%H:%M')
-date_label =  'GFS: ' + gfs_batch.strftime('%d/%m/%Y-%H:%Mz') + '\n'
-date_label += 'plot: ' + creation_date.strftime('%d/%m/%Y-%H:%M ')
+import pathlib
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime as dt
+from netCDF4 import Dataset
+import wrf
+import metpy
+import rasterio
+from rasterio.merge import merge
+from colormaps import WindSpeed, Convergencias, greys, CAPE, Rain
+import util as ut
+################################## LOGGING #####################################
+import logging
+import log_help
+log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) 
+log_file = log_file + f'_{DOMAIN}.log'
+lv = logging.INFO
+logging.basicConfig(level=lv,
+                 format='%(asctime)s %(name)s:%(levelname)s - %(message)s',
+                 datefmt='%Y/%m/%d-%H:%M:%S',
+                 filename = log_file, filemode='a')
+LG = logging.getLogger('main')
+if not is_cron: log_help.screen_handler(LG, lv=lv)
+LG.info(f'Starting: {__file__}')
+################################################################################
+
+
+inifile = '../config.ini'
+fmt = '%d/%m/%Y-%H:%M'
+
+LG.info(f'Config file: {inifile}')
+LG.info(f'Data file: {INfname}')
+
+wrfout_folder, OUT_folder = ut.get_outfolder(inifile)
+
 
 # Get UTCshift automatically
 UTCshift = dt.datetime.now() - dt.datetime.utcnow()
 UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
+LG.info(f'UTC shift: {UTCshift}')
+
+creation_date = pathlib.Path(INfname).stat().st_mtime
+creation_date = dt.datetime.fromtimestamp(creation_date)
+LG.info(f'Data created: {creation_date.strftime(fmt)}')
+# Report here GFS batch and calculation time
+gfs_batch = open('batch.txt','r').read().strip()
+gfs_batch = dt.datetime.strptime(gfs_batch, fmt)
+date_label =  'GFS: ' + gfs_batch.strftime( fmt ) + '\n'
+date_label += 'plot: ' + creation_date.strftime( fmt+' ' )
 
 
-print('File:',INfname)
+LG.info(f'File: {INfname}')
 ncfile = Dataset(INfname)
 
 # Date in UTC
 # prefix to save files
 date = str(wrf.getvar(ncfile, 'times').values)
 date = dt.datetime.strptime(date[:-3], '%Y-%m-%dT%H:%M:%S.%f')
-print('Forecat for:',date)
+LG.info('Forecat for: {date}')
 
 # Variables for saving outputs
 OUT_folder = '/'.join([OUT_folder,DOMAIN,date.strftime('%Y/%m/%d')])
 com = f'mkdir -p {OUT_folder}'
+LG.warning(com)
 os.system(com)
 HH = date.strftime('%H%M')
 
@@ -107,6 +126,7 @@ top    = bounds.top_right.lat
 # bottom = np.min(wrf.to_np(lats))
 # top    = np.max(wrf.to_np(lats))
 
+LG.info('Reading WRF data')
 # WRF-Terrain
 # Topography in metres used in the calculations______________________[m] (ny,nx)
 terrain = wrf.getvar(ncfile, "ter", units='m') # = HGT
@@ -173,10 +193,10 @@ print('HFX:',bldepth.shape)
 ua = wrf.getvar(ncfile, "ua")  # U wind component
 va = wrf.getvar(ncfile, "va")  # V wind component
 wa = wrf.getvar(ncfile, "wa")  # W wind component
-wspd_wdir = wrf.getvar(ncfile, "wspd_wdir")
-wspd = np.sqrt(ua*ua + va*va ) # Wind instensity is only 2D
-sfcwind = wspd[0,:,:]
-print('Wind:',ua.shape)
+wspd10,wdir10 = wrf.g_uvmet.get_uvmet10_wspd_wdir(ncfile)
+ua10 = -wspd10 * np.sin(np.radians(wdir10))
+va10 = -wspd10 * np.cos(np.radians(wdir10))
+
 
 # Cloud water mixing ratio___________________________________[Kg/kg?] (nz,ny,nx)
 qcloud = wrf.getvar(ncfile, "QCLOUD")#"Cloud water mixing ratio"
@@ -199,7 +219,7 @@ print('low cloud:', low_cloudfrac.shape)
 print('mid cloud:', mid_cloudfrac.shape)
 print('high cloud:', high_cloudfrac.shape)
 blcloudpct = low_cloudfrac+mid_cloudfrac+high_cloudfrac
-blcloudpct = np.clip(blcloudpct, None, 100)
+blcloudpct = np.clip(blcloudpct*100, None, 100)
 
 
 # CAPE____________________________________________________________[J/kg] (ny,nx)
@@ -238,31 +258,33 @@ print('Hcrit:',hcrit.shape)
 # Cu Cloudbase ~I~where Cu Potential > 0~P~
 zsfclcl = ut.calc_sfclclheight( pressure, tc, td, heights, terrain, bldepth )
 print('zsfclcl:',zsfclcl.shape)
-# Mask Cu Pot > 0
-zsfclcldif = bldepth + terrain - zsfclcl
-null = 0. * zsfclcl
-# cu_base_pote = np.where(zsfclcldif>0, zsfclcl, null)
-zsfclcl = np.where(zsfclcldif>0, zsfclcl, null)
 
 # OvercastDevelopment Cloudbase__________________________________[m?] (nz,ny,nx)
 pmb = 0.01*(p.values+pb.values) # press is vertical coordinate in mb
 zblcl = ut.calc_blclheight(qvapor,heights,terrain,bldepth,pmb,tc)
 print('zblcl:',zblcl.shape)
-# Mask Overcast dev Pot > 0
-zblcldif = bldepth + terrain - zblcl
-null = 0. * zblcl
-# over_base_pote = np.where(zblcldif>0, zblcl, null)
-zblcl = np.where(zblcldif>0, zblcl, null)
 
 
 # Thermalling Height_________________________________________________[m] (ny,nx)
-# From Oriol Cervello's
 hglider = np.minimum(np.minimum(hcrit,zsfclcl), zblcl)
 print('hglider:',hglider.shape)
 # XXX warning!! hglider becomes numpy.array
 # from xarray.core.dataarray import DataArray
 # hglider = DataArray(hglider)
 # hglider.attrs["units"] = "metres"
+
+# Mask zsfclcl, zblcl___________________________________________________________
+## Mask Cu Pot > 0
+zsfclcldif = bldepth + terrain - zsfclcl
+null = 0. * zsfclcl
+# cu_base_pote = np.where(zsfclcldif>0, zsfclcl, null)
+zsfclcl = np.where(zsfclcldif>0, zsfclcl, null)
+## Mask Overcast dev Pot > 0
+zblcldif = bldepth + terrain - zblcl
+null = 0. * zblcl
+# over_base_pote = np.where(zblcldif>0, zblcl, null)
+zblcl = np.where(zblcldif>0, zblcl, null)
+
 
 
 # BL Avg Wind_____________________________________________________[m/s?] (ny,nx)
@@ -283,11 +305,7 @@ bltopwind = np.sqrt(utop*utop + vtop*vtop)
 print('utop:',utop.shape)
 print('vtop:',vtop.shape)
 print('BLtopwind:',bltopwind.shape)
-
-
-
-
-
+LG.info('WRF data read')
 
 
 
@@ -303,7 +321,8 @@ print('BLtopwind:',bltopwind.shape)
 ################################################################################
 #                                     Plots                                     #
 ################################################################################
-
+LG.info('Start Plots')
+from time import time
 ## Soundings ###################################################################
 f_cities = f'{here}/soundings.csv'
 Yt,Xt = np.loadtxt(f_cities,usecols=(0,1),delimiter=',',unpack=True)
@@ -314,7 +333,10 @@ for place,point in soundings:
    name = f'{OUT_folder}/{HH}_sounding_{place}.png'
    title = f"{place.capitalize()}"
    title += f" {(date+UTCshift).strftime('%d/%m/%Y-%H:%M')}"
+   told = time()
+   LG.info(f'Sounding {place}')
    ut.sounding(lat,lon,lats,lons,date,ncfile,pressure,tc,td,t2m,ua,va,title,fout=name)
+   print(place,time()-told)
 
 
 
@@ -323,22 +345,24 @@ import plot_functions as PF   # My plotting functions
 import matplotlib as mpl
 #  COLOR = 'black'
 #  ROLOC = '#e0e0e0'
+dpi = 150
+fontsize_title = 30
 mpl.rcParams['axes.facecolor'] = (1,1,1,0)
 mpl.rcParams['figure.facecolor'] = (1,1,1,0)
 mpl.rcParams["savefig.facecolor"] = (1,1,1,0)
-mpl.rcParams["figure.dpi"] = 150
-dpi = 150
+mpl.rcParams["figure.dpi"] = dpi
+
+
 from configparser import ConfigParser, ExtendedInterpolation
 def get_properties(fname,section):
    """
    Load the config options and return it as a class
    """
-   # LG.info(f'Loading config file: {fname}')
+   LG.info(f'Loading config file: {fname} for section {section}')
    # if not os.path.isfile(fname): return None
    config = ConfigParser(inline_comment_prefixes='#')
    config._interpolation = ExtendedInterpolation()
    config.read(fname)
-   # LG.debug('Trying to read start/end dates')
    #XXX We shouldn't use eval
    factor = float(eval(config[section]['factor']))
    vmin   = float(eval(config[section]['vmin']))
@@ -356,8 +380,6 @@ def get_properties(fname,section):
 
 
 
-fontsize_title = 30
-from time import time
 # Background plots #############################################################
 ## Terrain 
 fig,ax,orto = PF.terrain_plot(reflat,reflon,left,right,bottom,top)
@@ -414,7 +436,7 @@ PF.save_figure(fig,fname,dpi=dpi)
 
 
 # Properties ###################################################################
-wrf_properties = {'sfcwind':sfcwind, 'blwind':blwind, 'bltopwind':bltopwind,
+wrf_properties = {'sfcwind':wspd10, 'blwind':blwind, 'bltopwind':bltopwind,
                   'hglider':hglider, 'wstar':wstar, 'zsfclcl':zsfclcl,
                   'zblcl':zblcl, 'cape':MCAPE, 'wblmaxmin':wblmaxmin,
                   'bldepth': bldepth,  #'bsratio':bsratio,
@@ -464,7 +486,7 @@ ftitles.close()
 
 ## Vector properties ###########################################################
 names = ['sfcwind','blwind','bltopwind']
-winds = [[ua[0,:,:].values, va[0,:,:].values],
+winds = [[ua10.values, va10.values],
          [ublavgwind, vblavgwind],
          [utop, vtop]]
 
@@ -472,7 +494,7 @@ for wind,name in zip(winds,names):
    fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
    U = wind[0]
    V = wind[1]
-   PF.vector_plot(fig,ax,orto,lons,lats,U,V, dens=1.5,color=(0,0,0))
+   PF.vector_plot(fig,ax,orto,lons.values,lats.values,U,V, dens=1.5,color=(0,0,0))
    # fname = OUT_folder +'/'+ prefix + name + '_vec.png'
    fname = f'{OUT_folder}/{HH}_{name}_vec.png'
    PF.save_figure(fig,fname,dpi=dpi)

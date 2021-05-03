@@ -34,7 +34,7 @@ exec 2<>"${ERR_FILE}"
 # interval_seconds
 
 
-source rasp_env.sh 
+source $RUN_DIR/rasp_env.sh
 
 
 DOMAIN=`./get_domain.py | head -n 1 | tail -n 1`
@@ -46,6 +46,7 @@ echo -e "Starting RUN"
 echo -e "Domain         : ${DOMAIN}"
 echo -e "GFS Data Folder: ${GFSdata} "
 echo -e "Ncores: ${Ncores}\n"
+
 
 (
 echo "Cleaning up previous runs"

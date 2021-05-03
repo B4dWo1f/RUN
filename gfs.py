@@ -104,7 +104,7 @@ def get_files(Params, dates, data_folder='data'):
    ##    status = download_file(*inp)
    ##    # sleep(1)
    # Parallel option. The server seems to penalize this option
-   npool =int(min([len(all_inps)/2,10])) 
+   npool = 5  # int(min([len(all_inps)/2,10])) # XXX  check depending on ISP
    LG.debug(f'Starting download with {npool} requests in parallel')
    pool = Pool(npool)
    remaining = all_inps
@@ -120,6 +120,7 @@ def get_files(Params, dates, data_folder='data'):
       #TODO add sleep here
       cont += 1
    LG.info('All GFS data downloaded')
+   return True
 
 
 ### Harcoded server data

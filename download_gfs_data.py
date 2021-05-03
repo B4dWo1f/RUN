@@ -36,4 +36,10 @@ while current_date <= R.end_date:
    current_date += step
 
 
-got_all_files = gfs.get_files(R,dates_calc,R.GFS_data_folder)
+cont = 0
+while cont < 5:
+    try:
+        got_all_files = gfs.get_files(R,dates_calc,R.GFS_data_folder)
+        if got_all_files: cont = 1000  # XXX dumb ways to exit...
+    except:
+        cont += 1

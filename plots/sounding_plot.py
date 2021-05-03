@@ -10,6 +10,10 @@ import matplotlib.lines as mlines
 import metpy.calc as mpcalc
 from matplotlib import gridspec
 from colormaps import HEIGHTS
+import log_help
+import logging
+LG = logging.getLogger(__name__)
+
 
 # import os
 # here = os.path.dirname(os.path.realpath(__file__))
@@ -45,7 +49,8 @@ mpl.rcParams['axes.labelsize'] = 'large' # fontsize of the x any y labels
 ################################################################################
 
 
-def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,latlon='',title='',show=False):
+@log_help.timer(LG)
+def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',title='',show=False):
    """
    h: heights
    p: pressure
@@ -255,94 +260,5 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,latlon='',title='',show=False):
    else:
        ax.set_title(title, fontsize=20)
    if show: plt.show()
-   return fig,ax
-
-# Backup
-# def skewt_plot(p,tc,tdc,date,u=None,v=None,show=False):
-#    # adapted from https://geocat-examples.readthedocs.io/en/latest/gallery/Skew-T/NCL_skewt_3_2.html#sphx-glr-gallery-skew-t-ncl-skewt-3-2-py
-#    from metpy.plots import SkewT
-#    from metpy.units import units
-#    import matplotlib.lines as mlines
-#    import metpy.calc as mpcalc
-#    fig = plt.figure(figsize=(9, 12))
-#    # Adding the "rotation" kwarg will over-ride the default MetPy rotation of
-#    # 30 degrees for the 45 degree default found in NCL Skew-T plots
-#    skew = SkewT(fig, rotation=45)
-#    ax = skew.ax
-
-#    # Plot the data, T and Tdew vs pressure
-#    skew.plot(p, tc, 'r')
-#    skew.plot(p, tdc, 'b')
-
-#    # LCL
-#    lcl_pressure, lcl_temperature = mpcalc.lcl(p[0], tc[0], tdc[0])
-#    skew.plot(lcl_pressure, lcl_temperature, 'ko', markerfacecolor='black')
-
-#    # Calculate the parcel profile  #XXX units workaround
-#    parcel_prof = mpcalc.parcel_profile(p.values * units.hPa,
-#                                        tc[0] * units.degC,
-#                                        tdc[0].values * units.degC).to('degC')
-#    # Plot the parcel profile as a black line
-#    skew.plot(p, parcel_prof, 'k', linewidth=2)
-
-#    # shade CAPE and CIN
-#    skew.shade_cape(p.values * units.hPa,
-#                    tc.values * units.degC, parcel_prof)
-#    skew.shade_cin(p.values * units.hPa,
-#                   tc.values * units.degC,
-#                   parcel_prof,
-#                   tdc.values * units.degC)
-
-#    if type(u) != type(None) and type(v) != type(None):
-#       # Plot only every n windbarb
-#       n = 3
-#       skew.plot_barbs(pressure=p[::n].values * units.hPa,
-#                       u=u[::n], v=v[::n],
-#                       xloc=1.05, fill_empty=True,
-#                       sizes=dict(emptybarb=0.075, width=0.1, height=0.2))
-#       # Draw line underneath wind barbs
-#       line = mlines.Line2D([1.05, 1.05], [0, 1], color='gray', linewidth=0.5,
-#                            transform=ax.transAxes,
-#                            dash_joinstyle='round',
-#                            clip_on=False,
-#                            zorder=0)
-#       ax.add_line(line)
-
-#    # Add relevant special lines
-#    # Choose starting temperatures in Kelvin for the dry adiabats
-#    t0 = units.K * np.arange(243.15, 473.15, 10)
-#    skew.plot_dry_adiabats(t0=t0, linestyles='solid', colors='gray', linewidth=1)
-
-#    # Choose temperatures for moist adiabats
-#    t0 = units.K * np.arange(281.15, 306.15, 4)
-#    msa = skew.plot_moist_adiabats(t0=t0,
-#                                   linestyles='solid',
-#                                   colors='lime',
-#                                   linewidths=.75)
-
-#    # Choose mixing ratios
-#    w = np.array([0.001, 0.002, 0.003, 0.005, 0.008, 0.012, 0.020]).reshape(-1, 1)
-
-#    # Choose the range of pressures that the mixing ratio lines are drawn over
-#    p_levs = units.hPa * np.linspace(1000, 400, 7)
-#    skew.plot_mixing_lines(mixing_ratio=w, pressure=p_levs,
-#                           linestyle='dotted',linewidths=1, colors='lime')
-
-#    skew.ax.set_ylim(1000, 150)
-#    skew.ax.set_xlim(-30, 30)
-#    # skew.ax.set_xlim(-30, 40)
-#    # XXX gvutil not installed
-#    # gvutil.set_titles_and_labels(ax, maintitle="ATS Rawinsonde: degC + Thin wind")
-#    # Set axes limits and ticks
-#    # gvutil.set_axes_limits_and_ticks(ax=ax, xlim=[-30, 50],
-#    #                 yticks=[1000, 850, 700, 500, 400, 300, 250, 200, 150, 100])
-
-#    # Change the style of the gridlines
-#    ax.grid(True, which='major', axis='both',
-#             color='tan', linewidth=1.5, alpha=0.5)
-
-#    ax.set_xlabel("Temperature (C)")
-#    ax.set_ylabel("P (hPa)")
-#    ax.set_title(f"{(date).strftime('%d/%m/%Y-%H:%M')} (local time)")
-#    if show: plt.show()
-#    return fig,ax
+   fig.savefig(fout, bbox_inches='tight', pad_inches=0.1, dpi=150, quality=90)
+   plt.close('all')

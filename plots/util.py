@@ -140,11 +140,8 @@ def sounding(lat,lon,lats,lons,date,ncfile,pressure,tc,td,t0,ua,va,
    # ax.scatter(i,j,s=100,c='r')
    # fig.tight_layout()
    # plt.show()
-
-   fig,ax = SP.skewt_plot(p,tc,tdc,t0,date,u,v,
-                                          latlon=latlon,title=title,show=False)
+   SP.skewt_plot(p,tc,tdc,t0,date,u,v,fout=fout,latlon=latlon,title=title)
    # fig.savefig(fout)
-   fig.savefig(fout, bbox_inches='tight', pad_inches=0.1, dpi=150, quality=90)
 
 
 def cross_path(start,end):

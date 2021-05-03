@@ -37,6 +37,9 @@ daily_hours = [start,end]
 folder = '~/METEO'
 domain = 'Spain6_1'
 domains = 1,2   #XXX this should be automatic
+Ncores = 32
+left,right = -17,8
+bottom,top = 30,48
 
 config = configparser.ConfigParser()
 config['run'] = {}
@@ -48,11 +51,11 @@ config['run']['domains'] = ','.join([str(x) for x in domains])
 config['run']['GFS_data_folder'] = f'{folder}/dataGFS'
 config['run']['output_folder'] = f'/storage/WRFOUT/{domain}'
 config['run']['plots_folder'] = f'/storage/PLOTS/{domain}'
-config['run']['leftlon']   = str(-17)
-config['run']['rightlon']  = str(8)
-config['run']['toplat']    = str(48)
-config['run']['bottomlat'] = str(30)
-config['run']['Ncores']    = str(32)
+config['run']['leftlon']   = str(left)
+config['run']['rightlon']  = str(right)
+config['run']['toplat']    = str(top)
+config['run']['bottomlat'] = str(bottom)
+config['run']['Ncores']    = str(Ncores)
 config['run']['log_level'] = 'debug'
 
 with open('config.ini', 'w') as configfile:
