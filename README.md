@@ -7,3 +7,6 @@ RASP by Uri & Noel
 - [ ] Old computer for testing
 - [ ] Web design & repo
 - [ ] Bot & repo
+- [ ] Documentation properties
+- - [ ] images
+- - [ ] soundings full explanation
