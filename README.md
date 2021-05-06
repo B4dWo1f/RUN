@@ -9,6 +9,9 @@ RASP by Uri & Noel
 - [ ] Add option to discard first N wrfout files
 - [ ] Old computer for testing
 - [ ] Web design & repo
+- [ ] Persistent, rotating log (at least keep logs for a couple of days?)
+- [ ] Try Pirineos domain
+- - [ ] merge Guadarrama + Pirineos + ...
 - [ ] Bot & repo
 - [ ] Documentation properties
 - - [ ] images
