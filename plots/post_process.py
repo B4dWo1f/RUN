@@ -385,11 +385,14 @@ def get_properties(fname,section):
 
 # Background plots #############################################################
 ## Terrain 
-LG.debug('plotting terrain')
-fig,ax,orto = PF.terrain_plot(reflat,reflon,left,right,bottom,top)
 fname = f'{OUT_folder}/terrain.png'
-PF.save_figure(fig,fname,dpi=dpi)
-LG.info('plotted terrain')
+if os.path.isfile(fname):
+   LG.info(f'{fname} already present')
+else:
+   LG.debug('plotting terrain')
+   fig,ax,orto = PF.terrain_plot(reflat,reflon,left,right,bottom,top)
+   PF.save_figure(fig,fname,dpi=dpi)
+   LG.info('plotted terrain')
 
 # ## Ocean
 # fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
@@ -397,61 +400,83 @@ LG.info('plotted terrain')
 # fig.savefig(f'{OUT_folder}/ocean.png', transparent=True, bbox_inches='tight',
 #                    pad_inches=0, #dpi=90,
 #                    quality=90)
+
 ## Parallel and meridian
-LG.debug('plotting meridians')
-fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
-PF.parallel_and_meridian(fig,ax,orto,left,right,bottom,top)
 fname = f'{OUT_folder}/meridian.png'
-PF.save_figure(fig,fname,dpi=dpi)
-LG.info('plotted meridians')
+if os.path.isfile(fname):
+   LG.info(f'{fname} already present')
+else:
+   LG.debug('plotting meridians')
+   fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+   PF.parallel_and_meridian(fig,ax,orto,left,right,bottom,top)
+   PF.save_figure(fig,fname,dpi=dpi)
+   LG.info('plotted meridians')
 
 ## Rivers
-LG.debug('plotting rivers')
-fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
-PF.rivers_plot(fig,ax,orto)
 fname = f'{OUT_folder}/rivers.png'
-PF.save_figure(fig,fname,dpi=dpi)
-LG.info('plotted rivers')
+if os.path.isfile(fname):
+   LG.info(f'{fname} already present')
+else:
+   LG.debug('plotting rivers')
+   fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+   PF.rivers_plot(fig,ax,orto)
+   PF.save_figure(fig,fname,dpi=dpi)
+   LG.info('plotted rivers')
 
 ## CCAA
-LG.debug('plotting ccaa')
-fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
-PF.ccaa_plot(fig,ax,orto)
 fname = f'{OUT_folder}/ccaa.png'
-PF.save_figure(fig,fname,dpi=dpi)
-LG.info('plotted ccaa')
+if os.path.isfile(fname):
+   LG.info(f'{fname} already present')
+else:
+   LG.debug('plotting ccaa')
+   fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+   PF.ccaa_plot(fig,ax,orto)
+   PF.save_figure(fig,fname,dpi=dpi)
+   LG.info('plotted ccaa')
 
 ## Cities
-LG.debug('plotting cities')
-fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
-PF.csv_plot(fig,ax,orto,f'{here}/cities.csv')
 fname = f'{OUT_folder}/cities.png'
-PF.save_figure(fig,fname,dpi=dpi)
-LG.info('plotted cities')
+if os.path.isfile(fname):
+   LG.info(f'{fname} already present')
+else:
+   LG.debug('plotting cities')
+   fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+   PF.csv_plot(fig,ax,orto,f'{here}/cities.csv')
+   PF.save_figure(fig,fname,dpi=dpi)
+   LG.info('plotted cities')
 
 ## Citiy Names
-LG.debug('plotting cities names')
-fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
-PF.csv_names_plot(fig,ax,orto,f'{here}/cities.csv')
 fname = f'{OUT_folder}/cities_names.png'
-PF.save_figure(fig,fname,dpi=dpi)
-LG.info('plotted cities names')
+if os.path.isfile(fname):
+   LG.info(f'{fname} already present')
+else:
+   LG.debug('plotting cities names')
+   fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+   PF.csv_names_plot(fig,ax,orto,f'{here}/cities.csv')
+   PF.save_figure(fig,fname,dpi=dpi)
+   LG.info('plotted cities names')
 
 ## Takeoffs 
-LG.debug('plotting takeoffs')
-fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
-PF.csv_plot(fig,ax,orto,f'{here}/takeoffs.csv')
 fname = f'{OUT_folder}/takeoffs.png'
-PF.save_figure(fig,fname,dpi=dpi)
-LG.info('plotted takeoffs')
+if os.path.isfile(fname):
+   LG.info(f'{fname} already present')
+else:
+   LG.debug('plotting takeoffs')
+   fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+   PF.csv_plot(fig,ax,orto,f'{here}/takeoffs.csv')
+   PF.save_figure(fig,fname,dpi=dpi)
+   LG.info('plotted takeoffs')
 
 ## Takeoffs Names
-LG.debug('plotting takeoffs names')
-fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
-PF.csv_names_plot(fig,ax,orto,f'{here}/takeoffs.csv')
 fname = f'{OUT_folder}/takeoffs_names.png'
-PF.save_figure(fig,fname,dpi=dpi)
-LG.info('plotted takeoffs names')
+if os.path.isfile(fname):
+   LG.info(f'{fname} already present')
+else:
+   LG.debug('plotting takeoffs names')
+   fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
+   PF.csv_names_plot(fig,ax,orto,f'{here}/takeoffs.csv')
+   PF.save_figure(fig,fname,dpi=dpi)
+   LG.info('plotted takeoffs names')
 
 
 # Properties ###################################################################

@@ -87,9 +87,9 @@ fi
 )
 # Check Input and GFS section
 if [ $? -eq 0 ]; then
-   echo_success 'Input & GFS'
+   echo 'SUCCESS: Input & GFS'
 else
-   echo_fail "Error in Input or GFS data"
+   echo "FAIL: Error in Input or GFS data"
    exit 1
 fi
 
@@ -131,9 +131,9 @@ fi
 )
 # Check WPS codes
 if [ $? -eq 0 ]; then
-   echo_sucess "WPS run Ok."
+   echo "SUCCESS: WPS run Ok."
 else
-   echo_faile "Error during WPS steps"
+   echo "FAIL: Error during WPS steps"
    exit 1
 fi
 
@@ -170,8 +170,8 @@ rm wrfoutReady*
 )
 # Check WRF
 if [ $? -eq 0 ]; then
-   echo_success "WRF run Ok."
+   echo "SUCCESS: WRF run Ok."
 else
-   echo_fail "Error during WRF steps"
+   echo "FAIL: Error during WRF steps"
    exit 1
 fi

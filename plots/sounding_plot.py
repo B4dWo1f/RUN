@@ -64,6 +64,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
    adapted from:
    https://geocat-examples.readthedocs.io/en/latest/gallery/Skew-T/NCL_skewt_3_2.html#sphx-glr-gallery-skew-t-ncl-skewt-3-2-py
    """
+   Pmax = 150   # XXX upper limit
    print('Checking units')
    if p.attrs['units'] != 'hPa':
       print('P wrong units')
@@ -139,7 +140,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
 
    if type(u) != type(None) and type(v) != type(None):
       LG.info('Plotting wind')
-      ax2 = plt.subplot(gs[0,-1], sharey=ax)
+      ax2 = plt.subplot(gs[0,-1], sharey=ax, zorder=-1)
       # ax2.yaxis.set_visible(False)
       ax2.yaxis.tick_right()
       ax2.xaxis.tick_top()
@@ -181,8 +182,10 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       ax2y.set_ylabel('height (m)')
       ax2y.set_yticks(np.array([1000,2000,3000,4000,6000,6000,10000]))
       # ax2y.set_yticks([1,2,3,4])
-      ax2.set_xticks([0,5,10,15,20,30,40,50])
-      ax2.set_xticklabels(['0','','10','','20','30','40','50'])
+      #ax2.set_xticks([0,5,10,15,20,30,40,50])
+      #ax2.set_xticklabels(['0','','10','','20','30','40','50'])
+      ax2.set_xticks([0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 56])
+      ax2.set_xticklabels(['0','','8','','16','','24','32','40','48','56'])
       # from matplotlib.ticker import ScalarFormatter
       # ax2y.set_major_formatter(ScalarFormatter())
       plt.setp(ax2.get_yticklabels(), visible=False)
@@ -220,12 +223,18 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       # #    print(xp,xh)
       # # ax2y.set_yticks(locs)
       # # ax2y.set_yticklabels([f'{int(l.magnitude)}' for l in labels])
-   # #    # Plot only every n windbarb
-   # #    n = 3
-   # #    skew.plot_barbs(pressure=p[::n].values * units.hPa,
-   # #                    u=u[::n], v=v[::n],
-   # #                    xloc=1.05, fill_empty=True,
-   # #                    sizes=dict(emptybarb=0.075, width=0.1, height=0.2))
+       # Plot only every n windbarb
+      n = 3
+      inds, = np.where(p>Pmax)
+      break_p = 25
+      inds_low = inds[:break_p]
+      inds_high = inds[break_p:]
+      inds = np.append(inds_low[::n], inds_high)
+      skew.plot_barbs(pressure=p[inds], #[::n], # * units.hPa,
+                      u=u[inds], #[::n],
+                      v=v[inds], #[::n],
+                      xloc=0.985, # fill_empty=True,
+                      sizes=dict(emptybarb=0.075, width=0.1, height=0.2))
    # #    # Draw line underneath wind barbs
    # #    line = mlines.Line2D([1.05, 1.05], [0, 1], color='gray', linewidth=0.5,
    # #                         transform=ax.transAxes,
@@ -257,8 +266,8 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
 
    LG.info('Plotted adiabats, and other grid lines')
 
-   skew.ax.set_ylim(1000, 150)
-   skew.ax.set_xlim(-30, 30)
+   skew.ax.set_ylim(1000, Pmax)
+   skew.ax.set_xlim(-20, 40)
    # skew.ax.set_xlim(-30, 40)
    # XXX gvutil not installed
    # gvutil.set_titles_and_labels(ax, maintitle="ATS Rawinsonde: degC + Thin wind")
