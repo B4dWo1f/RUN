@@ -192,7 +192,8 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       # Hodograph
       ax_hod = inset_axes(ax2, '110%', '30%', loc=1)
       ax_hod.set_yticklabels([])
-      L = 60
+      ax_hod.set_xticklabels([])
+      L = 80
       ax_hod.text(  0, L-5,'N', horizontalalignment='center',
                                verticalalignment='center')
       ax_hod.text(L-5,  0,'E', horizontalalignment='center',
@@ -224,7 +225,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       # # ax2y.set_yticks(locs)
       # # ax2y.set_yticklabels([f'{int(l.magnitude)}' for l in labels])
        # Plot only every n windbarb
-      n = 3
+      n = 4
       inds, = np.where(p>Pmax)
       break_p = 25
       inds_low = inds[:break_p]

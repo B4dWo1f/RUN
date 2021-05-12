@@ -74,6 +74,7 @@ ncfile = Dataset(INfname)
 date = str(wrf.getvar(ncfile, 'times').values)
 date = dt.datetime.strptime(date[:-3], '%Y-%m-%dT%H:%M:%S.%f')
 LG.info(f'Forecast for: {date}')
+date_label = 'valid: ' + date.strftime( fmt ) + 'z\n' + date_label
 
 # Variables for saving outputs
 OUT_folder = '/'.join([OUT_folder,DOMAIN,date.strftime('%Y/%m/%d')])
@@ -441,7 +442,7 @@ if os.path.isfile(fname):
 else:
    LG.debug('plotting cities')
    fig,ax,orto = PF.setup_plot(reflat,reflon,left,right,bottom,top)
-   PF.csv_plot(fig,ax,orto,f'{here}/cities.csv')
+   PF.csv_plot(fig,ax,orto,f'{here}/cities.csv', marker='o')
    PF.save_figure(fig,fname,dpi=dpi)
    LG.info('plotted cities')
 
