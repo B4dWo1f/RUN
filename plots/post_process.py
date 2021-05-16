@@ -551,7 +551,7 @@ for wind,name in zip(winds,names):
    LG.info(f'Plotted vector {name}')
 
 #XXX shouldn't do this here
-wrfout_folder += gfs_batch.strftime('/%Y/%m/%d/%H')
+wrfout_folder += '/processed'   #gfs_batch.strftime('/%Y/%m/%d/%H')
 com = f'mkdir -p {wrfout_folder}'
 print('****')
 print(com)

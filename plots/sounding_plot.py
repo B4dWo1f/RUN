@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from metpy.plots import SkewT, Hodograph
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib.ticker import ScalarFormatter
 from metpy.units import units
 import matplotlib.lines as mlines
 import metpy.calc as mpcalc
@@ -94,14 +95,14 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
    fig = plt.figure(figsize=(11, 12))
    LG.info('created figure')
    LG.info('creating axis')
-   gs = gridspec.GridSpec(1, 4)
+   gs = gridspec.GridSpec(1, 2, width_ratios=[4,1])
    fig.subplots_adjust(wspace=0.,hspace=0.)
    # ax1 = plt.subplot(gs[1:-1,0])
    # Adding the "rotation" kwarg will over-ride the default MetPy rotation of
    # 30 degrees for the 45 degree default found in NCL Skew-T plots
    LG.info('created axis')
    LG.info('Creatin SkewT')
-   skew = SkewT(fig, rotation=45, subplot=gs[0,0:-1])
+   skew = SkewT(fig, rotation=45, subplot=gs[0,0])
    ax = skew.ax
    LG.info('Created SkewT')
 
@@ -140,10 +141,10 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
 
    if type(u) != type(None) and type(v) != type(None):
       LG.info('Plotting wind')
-      ax2 = plt.subplot(gs[0,-1], sharey=ax, zorder=-1)
+      ax2 = plt.subplot(gs[0,1], sharey=ax, zorder=-1)
       # ax2.yaxis.set_visible(False)
       ax2.yaxis.tick_right()
-      ax2.xaxis.tick_top()
+      # ax2.xaxis.tick_top()
       wspd = np.sqrt(u*u + v*v)
       ax2.scatter(wspd, p, c=p, cmap=HEIGHTS) #'viridis_r')
       gnd = mpcalc.pressure_to_height_std(np.array(p[0])*units.hPa)
@@ -153,6 +154,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       ax2.set_xlim(0,56)
       ax2.set_xlabel('Wspeed (km/h)')
       ax2.grid()
+
       def p2h(x):
          """
          x in hPa
@@ -178,16 +180,23 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       # print(h2p(p2h(p[0])))
       # print('------')
       # exit()
-      ax2y = ax2.secondary_yaxis(1.,functions=(p2h,h2p))
+
+      ax2y = ax2.secondary_yaxis(1.02,functions=(p2h,h2p))
       ax2y.set_ylabel('height (m)')
-      ax2y.set_yticks(np.array([1000,2000,3000,4000,6000,6000,10000]))
+      # ax2y.set_yticks(np.array([1000,2000,3000,4000,6000,6000,10000]))
+      # XXX Not working
+      ax2y.yaxis.set_major_formatter(ScalarFormatter())
+      ax2y.yaxis.set_minor_formatter(ScalarFormatter())
+      #################
+      ax2y.set_color('red')
+      ax2y.tick_params(colors='red',size=7, width=1, which='both')  # 'both' refers to minor and major axes
       # ax2y.set_yticks([1,2,3,4])
       #ax2.set_xticks([0,5,10,15,20,30,40,50])
       #ax2.set_xticklabels(['0','','10','','20','30','40','50'])
       ax2.set_xticks([0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 56])
       ax2.set_xticklabels(['0','','8','','16','','24','32','40','48','56'])
-      # from matplotlib.ticker import ScalarFormatter
       # ax2y.set_major_formatter(ScalarFormatter())
+      # ax2y.set_minor_formatter(ScalarFormatter())
       plt.setp(ax2.get_yticklabels(), visible=False)
       # Hodograph
       ax_hod = inset_axes(ax2, '110%', '30%', loc=1)
@@ -268,7 +277,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
    LG.info('Plotted adiabats, and other grid lines')
 
    skew.ax.set_ylim(1000, Pmax)
-   skew.ax.set_xlim(-20, 40)
+   skew.ax.set_xlim(-20, 43)
    # skew.ax.set_xlim(-30, 40)
    # XXX gvutil not installed
    # gvutil.set_titles_and_labels(ax, maintitle="ATS Rawinsonde: degC + Thin wind")
