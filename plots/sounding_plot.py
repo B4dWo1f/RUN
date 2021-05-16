@@ -17,7 +17,8 @@ from metpy.units import units
 import matplotlib.lines as mlines
 import metpy.calc as mpcalc
 from matplotlib import gridspec
-from colormaps import HEIGHTS
+from colormaps import HEIGHTS, WindSpeed
+from matplotlib.patches import Rectangle
 
 
 # import os
@@ -120,14 +121,24 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
    lcl_pressure, lcl_temperature = mpcalc.lcl(p[0]*units.hPa,
                                               t0*units.degC,
                                               tdc[0]*units.degC)
-   skew.plot(lcl_pressure, lcl_temperature, 'ko', markerfacecolor='black')
+   skew.plot(lcl_pressure, lcl_temperature, 'k.')
 
    # Calculate the parcel profile  #XXX units workaround
    parcel_prof = mpcalc.parcel_profile(p* units.hPa,
                                        t0 * units.degC,
                                        tdc[0]* units.degC).to('degC')
+   # Plot cloud base
+   ind_cross = np.argmin(np.abs(parcel_prof.magnitude - tc))
+   p_base = np.max([lcl_pressure.magnitude, p[ind_cross]])
+   t_base = np.max([lcl_temperature.magnitude, tc[ind_cross]])
+   m_base = mpcalc.pressure_to_height_std(np.array(p_base)*units.hPa)
+   m_base = m_base.to('m').magnitude
+   skew.ax.axhline(p_base, color=(0.5,0.5,0.5), ls='--')
+   skew.plot(p_base, t_base, 'C3o', zorder=100)
+   skew.ax.text(t_base, p_base, f'{m_base:.0f}m',ha='left')
+
    # Plot the parcel profile as a black line
-   skew.plot(p, parcel_prof, 'k', linewidth=2)
+   skew.plot(p, parcel_prof, 'k', linewidth=1)
    LG.info('plotted parcel profile')
 
    # shade CAPE and CIN
@@ -146,11 +157,19 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       ax2.yaxis.tick_right()
       # ax2.xaxis.tick_top()
       wspd = np.sqrt(u*u + v*v)
-      ax2.scatter(wspd, p, c=p, cmap=HEIGHTS) #'viridis_r')
+      ax2.scatter(wspd, p, c=p, cmap=HEIGHTS, zorder=10)
       gnd = mpcalc.pressure_to_height_std(np.array(p[0])*units.hPa)
       gnd = gnd.to('m')
+      # Ground
       ax2.axhline(p[0],c='k',ls='--')
       ax2.text(56,p[0],f'{int(gnd.magnitude)}m',horizontalalignment='right')
+      # Techo
+      ax2.axhline(p_base,c=(0.5,0.5,0.5),ls='--')
+      ### Background colors ##
+      #for i,c in enumerate(WindSpeed.colors):
+      #   rect = Rectangle((i*4, 150), 4, 900,  color=c, alpha=0.5,zorder=-1)
+      #   ax2.add_patch(rect)
+      #########################
       ax2.set_xlim(0,56)
       ax2.set_xlabel('Wspeed (km/h)')
       ax2.grid()
@@ -194,9 +213,7 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
       #ax2.set_xticks([0,5,10,15,20,30,40,50])
       #ax2.set_xticklabels(['0','','10','','20','30','40','50'])
       ax2.set_xticks([0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 56])
-      ax2.set_xticklabels(['0','','8','','16','','24','32','40','48','56'])
-      # ax2y.set_major_formatter(ScalarFormatter())
-      # ax2y.set_minor_formatter(ScalarFormatter())
+      ax2.set_xticklabels(['0','','8','','16','','24','32','40','48','56'], fontsize=11, va='center')
       plt.setp(ax2.get_yticklabels(), visible=False)
       # Hodograph
       ax_hod = inset_axes(ax2, '110%', '30%', loc=1)
@@ -256,6 +273,8 @@ def skewt_plot(p,tc,tdc,t0,date,u=None,v=None,fout='sounding.png',latlon='',titl
    # Add relevant special lines
    # Choose starting temperatures in Kelvin for the dry adiabats
    LG.info('Plot adiabats, and other grid lines')
+   skew.ax.text(t0,p[0],f'{t0:.1f}°C',va='top')
+   skew.ax.axvline(t0, color=(0.5,0.5,0.5),ls='--')
    t0 = units.K * np.arange(243.15, 473.15, 10)
    skew.plot_dry_adiabats(t0=t0, linestyles='solid', colors='gray', linewidth=1)
 
