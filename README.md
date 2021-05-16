@@ -7,6 +7,8 @@ RASP by Uri & Noel
 - [ ] Update matplotlib version to fix heights axis
 - [ ] zoom for post-process
 - [ ] Improve Colormap to highlight differences in small regions while keeping the blue-green-yellow-red scale of difficulty
+- [ ] cloud fraction to "cloud satellite" or something
+- [ ] Implement low, mid, high clouds (frac)
 ### WRF/RUN
 - [ ] Add option to discard first N wrfout files
 - [ ] Persistent, rotating log (at least keep logs for a couple of days?)
