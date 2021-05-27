@@ -61,7 +61,7 @@ def checker(folder,files,mode='ftp'):
       return False
 
 
-def get_files(Params, dates, data_folder='data'):
+def get_files(Params, dates, data_folder='data',force_batch=40):
    """
    Downloads the GFS data for each of the dates provided in dates
    """
@@ -73,20 +73,35 @@ def get_files(Params, dates, data_folder='data'):
    batch = get_GFS_calc(batch)
    LG.info(f"Tentative GFS batch: {batch.strftime('%Y%m%d/%H')}")
    delta = dt.timedelta(hours=6)
+   is_data_present = False
    for i_batch in range(4):   # loop for previous GFS batchs
       batch = batch - i_batch*delta
-      LG.info(f'Trying calculation: {batch.strftime(fmt)}')
-      # Generate all the urls
-      folders,files = [],[]
-      for date in dates:
-         folder,fname = ncep_folder_fname(batch,date)
-         files.append(fname)
-      is_data_present = checker(folder,files)
 
-      if is_data_present:
-         # If all data is present break the GFS batchs loop
-         LG.info('all the data is in the server, starting download')
-         break
+      start = dt.datetime.now()
+      waiting = (dt.datetime.now() - start).total_seconds()/60
+      LG.info(f'Is data present: {is_data_present} trying since {waiting:.0f}s ago')
+      while not is_data_present and waiting < force_batch:
+         waiting = (dt.datetime.now() - start).total_seconds()/60
+         LG.info(f'Trying batch: {batch.strftime(fmt)} ({waiting:.0f}/{force_batch}m)')
+         # Generate all the urls
+         folders,files = [],[]
+         for date in dates:
+            folder,fname = ncep_folder_fname(batch,date)
+            files.append(fname)
+         LG.info(f'Files: {files[0]} - {files[-1]}')
+         is_data_present = checker(folder,files)
+         LG.info('Waiting 60 seconds')
+         sleep(60)
+
+         # if is_data_present:
+         #    # If all data is present break the GFS batchs loop
+         #    LG.info('all the data is in the server, starting download')
+         #    exit = True
+         #    break
+         # else: exit = False
+      if is_data_present: break
+      LG.critical('FAILED. Falling back to previous batch')
+
 
 ### Download
    LG.info(f"Correct GFS batch: {batch.strftime('%Y%m%d/%H')}")

@@ -12,7 +12,7 @@ import logging
 import log_help
 LG = logging.getLogger(__name__)
 import json
-fmt = '%s/%d/%Y-%H:%M'
+fmt = '%d/%m/%Y-%H:%M'
 
 
 class RunParams(object):
