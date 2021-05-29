@@ -11,11 +11,15 @@ RASP by Uri & Noel
 - [ ] Implement low, mid, high clouds (frac)
 ### WRF/RUN
 - [ ] Add option to discard first N wrfout files
+- [ ] Fix mask_days for longer runs [break in days]
 - [ ] Persistent, rotating log (at least keep logs for a couple of days?)
+- [ ] Check everything for simultanous runs
 - [ ] Try Pirineos domain
+- - [ ] Compare sibiling domains vs complete domains
+- - [ ] 9_3_1 vs 6_1.2
 - - [ ] merge Guadarrama + Pirineos + ...
 ### General
-- [ ] Old computer for testing
+- [x] Old computer for testing
 - [ ] Web design & repo
 - [ ] Bot & repo
 - [ ] Documentation properties
