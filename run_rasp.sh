@@ -76,6 +76,7 @@ ls ${FOLDER_INSTALL}/WRF/run/namelist.*
 
 #### Download GFS data
 echo "Downloading GFS data"
+echo "Start" $1 $2 `date` >> TIME_download.txt
 time python3 download_gfs_data.py
 if [ $? -eq 0 ]; then
    echo "GFS data downloaded to ${GFSdata}:"
@@ -84,6 +85,7 @@ else
    1>&2 echo "Error downloading GFS data"
    exit 1
 fi
+echo "End" $1 $2 `date` >> TIME_download.txt
 )
 # Check Input and GFS section
 if [ $? -eq 0 ]; then

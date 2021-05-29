@@ -90,8 +90,9 @@ def get_files(Params, dates, data_folder='data',force_batch=40):
             files.append(fname)
          LG.info(f'Files: {files[0]} - {files[-1]}')
          is_data_present = checker(folder,files)
-         LG.info('Waiting 60 seconds')
-         sleep(60)
+         if not is_data_present:
+             LG.info('Waiting 60 seconds')
+             sleep(60)
 
          # if is_data_present:
          #    # If all data is present break the GFS batchs loop
