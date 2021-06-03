@@ -283,3 +283,9 @@ def change_directory(ftp, folder):
    LG.info(f'Changed directory to {folder}')
    return ftp.nlst()
 
+
+if __name__ == '__main__':
+    date = dt.datetime.now()
+    dateGFS = get_GFS_calc(date)
+    print('Time:',date)
+    print('Corresponding GFS:',dateGFS)
