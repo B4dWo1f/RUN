@@ -40,6 +40,7 @@ domains = 1,2   #XXX this should be automatic
 Ncores = 26
 left,right = -17,8
 bottom,top = 30,48
+wait4batch = 40  # Minutes to keep trying for the last GFS batch
 
 config = configparser.ConfigParser()
 config['run'] = {}
@@ -56,6 +57,7 @@ config['run']['rightlon']  = str(right)
 config['run']['toplat']    = str(top)
 config['run']['bottomlat'] = str(bottom)
 config['run']['Ncores']    = str(Ncores)
+config['run']['wait4batch']    = str(wait4batch)
 config['run']['log_level'] = 'debug'
 
 with open('config.ini', 'w') as configfile:

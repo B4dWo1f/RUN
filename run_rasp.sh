@@ -158,7 +158,9 @@ fi
 
 # WRF
 echo -e "\nStarting wrf.exe"
-time mpirun -np $Ncores ./wrf.exe
+echo "Start" $1 $2 `date` >> TIME.txt
+/usr/bin/time -f "%E" -a -o zTIME.txt mpirun -np $Ncores ./wrf.exe
+echo "End" $1 $2 `date` >> TIME.txt
 tail -n 1 rsl.error.0000 | grep -w SUCCESS
 if [ $? -eq 0 ]; then
    echo "WRF worked!!"

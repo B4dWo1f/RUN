@@ -19,7 +19,7 @@ class RunParams(object):
    def __init__(self, start_date, end_date, daily_hours, domains,
                       domain_folder, GFS_data_folder,
                       output_folder, plots_folder,
-                      leftlon, rightlon, toplat, bottomlat, Ncores):
+                      leftlon, rightlon, toplat, bottomlat, Ncores,wait4batch):
       UTCshift = dt.datetime.now() - dt.datetime.utcnow()
       UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
       self.UTCshift = UTCshift
@@ -54,6 +54,7 @@ class RunParams(object):
       self.toplat    = toplat
       self.bottomlat = bottomlat
       self.Ncores = Ncores
+      self.wait4batch = wait4batch
    def __str__(self):
       msg = f'Forecast for: {self.start_date} - {self.end_date}\n'
       msg += 'Hours mask: '
@@ -150,9 +151,10 @@ def load(fname='config.ini'):
 
    # System
    Ncores = int(config['run']['Ncores'])
+   wait4batch = float(config['run']['wait4batch'])
 
    R = RunParams(start_date, end_date, hours_mask, domains_run,
                  domain_folder, GFS_data_folder,output_folder,plots_folder,
-                 leftlon, rightlon, toplat, bottomlat, Ncores)
+                 leftlon, rightlon, toplat, bottomlat, Ncores, wait4batch)
 
    return R

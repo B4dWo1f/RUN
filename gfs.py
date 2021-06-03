@@ -19,16 +19,27 @@ log_help.screen_handler(LG, lv=logging.DEBUG)
 fmt = '%d/%m/%Y-%H:%M'
 
 
-def get_GFS_calc(date):
+def get_GFS_calc(date, shift = 3+40/60):
    """
-   This function returns the expected datetime of the latest-calculated data
-   for the date provided.
-   date: datetime.datetime object (at least it needs 'hour' attribute)
+   This function returns the expected datetime of the latest GFS data for the
+   provided date.
+   date: [datetime.datetime] target date
+   shift: [float] hours since batch name. ej: data from batch 06 is not usually
+          available before 9:40
+   Returns:
+   dateGFS: [datetime.datetime]
    """
-   hours = [0,6,12,18,date.hour]
+   # hours = [0,6,12,18,date.hour]
+   # inds = list(np.argsort(hours))
+   # ind = inds.index(4)-1
+   # dateGFS = date.replace( hour=hours[ind], minute=0, second=0,microsecond=0)
+   GFS = list(range(0,24,6))
+   hours = [h+shift for h in GFS] + [date.hour+date.minute/60]
    inds = list(np.argsort(hours))
-   ind = inds.index(4)-1
-   return date.replace( hour = hours[ind], minute=0, second=0,microsecond=0)
+   ind = (inds.index(4)-1) % len(GFS)
+   dateGFS = date.replace(hour=GFS[ind],minute=0,second=0,microsecond=0)
+   if dateGFS>date: dateGFS -= dt.timedelta(days=1)
+   return dateGFS
 
 
 def checker(folder,files,mode='ftp'):
@@ -61,11 +72,16 @@ def checker(folder,files,mode='ftp'):
       return False
 
 
-def get_files(Params, dates, data_folder='data',force_batch=40):
+def get_files(Params, dates, data_folder='data',wait4batch=40):
    """
    Downloads the GFS data for each of the dates provided in dates
+   wait4batch: [float] Minutes to keep trying for the last GFS batch
    """
    data_folder = Params.GFS_data_folder
+   leftlon = Params.leftlon
+   rightlon = Params.rightlon
+   toplat = Params.toplat
+   bottomlat = Params.bottomlat
    base_url = 'https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?'
 ### Ensure all data from same GFS run XXX check!
    now = dt.datetime.utcnow()
@@ -80,9 +96,9 @@ def get_files(Params, dates, data_folder='data',force_batch=40):
       start = dt.datetime.now()
       waiting = (dt.datetime.now() - start).total_seconds()/60
       LG.info(f'Is data present: {is_data_present} trying since {waiting:.0f}s ago')
-      while not is_data_present and waiting < force_batch:
+      while not is_data_present and waiting < wait4batch:
          waiting = (dt.datetime.now() - start).total_seconds()/60
-         LG.info(f'Trying batch: {batch.strftime(fmt)} ({waiting:.0f}/{force_batch}m)')
+         LG.info(f'Trying batch: {batch.strftime(fmt)} ({waiting:.0f}/{wait4batch}m)')
          # Generate all the urls
          folders,files = [],[]
          for date in dates:
@@ -115,7 +131,7 @@ def get_files(Params, dates, data_folder='data',force_batch=40):
    # Prepare all inputs for parallel download
    urls,files = [],[]
    for date in dates:
-      url,fname = URL_subregion(batch,date)
+      url,fname = URL_subregion(batch,date,leftlon,rightlon,toplat,bottomlat)
       urls.append(url)
       files.append(f'{data_folder}/{fname}')
    all_inps = [(u,f) for u,f in zip(urls,files)]
@@ -154,15 +170,10 @@ def ncep_folder_fname(batch,date):
    return remote_foler,fname
 
 
-def URL_subregion(batch,date):
+def URL_subregion(batch,date,leftlon,rightlon,toplat,bottomlat):
    """
    returns the url of the file with the GFS forecast for day `date` made on day
    `batch`, cropped by subregion
-   TODO: limits are hardcoded for my domain, they should be an input
-       leftlon: -17
-       rightlon: 8
-       toplat: 48
-       bottomlat: 30
    For GFS subregion, this is the url
    batch: date of the GFS data
    date: date of the forecast
@@ -172,10 +183,10 @@ def URL_subregion(batch,date):
    url += f'file={fname}'
    url += f'&all_lev=on&all_var=on'
    url += f'&subregion='
-   url += f'&leftlon=-17'
-   url += f'&rightlon=8'
-   url += f'&toplat=48'
-   url += f'&bottomlat=30'
+   url += f'&leftlon={leftlon}'
+   url += f'&rightlon={rightlon}'
+   url += f'&toplat={toplat}'
+   url += f'&bottomlat={bottomlat}'
    url += f'&dir=/{folder}/atmos'
    return url, fname
 ########################

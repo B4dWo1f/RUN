@@ -14,6 +14,8 @@ RASP by Uri & Noel
 - [ ] Fix mask_days for longer runs [break in days]
 - [ ] Persistent, rotating log (at least keep logs for a couple of days?)
 - [ ] Check everything for simultanous runs
+- [ ] Check for GFS download errors (err:500)
+- [ ] http/ftp alternative downloads
 - [ ] Try Pirineos domain
 - - [ ] Compare sibiling domains vs complete domains
 - - [ ] 9_3_1 vs 6_1.2
