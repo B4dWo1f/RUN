@@ -289,3 +289,32 @@ if __name__ == '__main__':
     dateGFS = get_GFS_calc(date)
     print('Time:',date)
     print('Corresponding GFS:',dateGFS)
+
+    # Plot
+    import matplotlib.pyplot as plt
+    try: plt.style.use('mystyle')
+    except: pass
+    import matplotlib.dates as mdates
+
+    start = date.replace(hour=0,minute=0)
+    current = start
+    delta = dt.timedelta(minutes=5)
+    X, Y = [],[]
+    while start.date() == current.date():
+       X.append(current)
+       Y.append(get_GFS_calc(current).hour)
+       current += delta
+
+    fmt = '%H:%M'
+    fig, ax = plt.subplots()
+    ax.plot(X,Y)
+    ax.axvline(date,color='k',ls='--')
+    ax.axhline(dateGFS.hour,color='k',ls='--')
+    ax.set_yticks(range(0,24,6))
+    ax.set_yticklabels([f'{x:02d}' for x in range(0,24,6)])
+    ax.xaxis.set_major_formatter(mdates.DateFormatter(fmt))
+    ax.set_xlabel('Time')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Corresponding GFS batch')
+    fig.tight_layout()
+    plt.show()
