@@ -7,3 +7,4 @@
 namelist.wps
 namelist.input
 **__pycache__
+config.ini
