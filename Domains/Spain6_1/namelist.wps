@@ -6,28 +6,28 @@
  interval_seconds = 3600,
  io_form_geogrid = 2,
  opt_output_from_geogrid_path = '/home/aeolus/METEO/RUN/Domains/Spain6_1/',
- debug_level = 50,
+ debug_level = 0,
 /
 
 &geogrid
  parent_id         = 1,1,
  parent_grid_ratio = 1,5,
- i_parent_start    = 1,42,
- j_parent_start    = 1,69,
- e_we          = 193,301,
- e_sn          = 159,241,
+ i_parent_start    = 1,54,
+ j_parent_start    = 1,81,
+ e_we          = 192,226,
+ e_sn          = 159,141,
  geog_data_res = '30s','30s',
  dx = 6000,
  dy = 6000,
  map_proj =  'lambert',
- ref_lat   = 39.827,
- ref_lon   = -3.129,
- truelat1  = 39.827,
- truelat2  = 39.827,
- stand_lon = -3.129,
+ ref_lat   = 39.872,
+ ref_lon   = -3.307,
+ truelat1  = 39.872,
+ truelat2  = 39.872,
+ stand_lon = -3.307,
  geog_data_path = '/storage/WPS_GEOG',
  opt_geogrid_tbl_path = '/home/aeolus/METEO/RUN/Domains/Spain6_1/',
- ref_x = 96.5,
+ ref_x = 96.0,
  ref_y = 79.5,
 /
 
@@ -61,21 +61,21 @@
 &domain_wizard
  grib_data_path = 'null',
  grib_vtable = 'null',
- dwiz_name    =Spain1km
+ dwiz_name    =Spain6_1s
  dwiz_desc    =
- dwiz_user_rect_x1 =3829
- dwiz_user_rect_y1 =1030
- dwiz_user_rect_x2 =4131
- dwiz_user_rect_y2 =1228
+ dwiz_user_rect_x1 =953
+ dwiz_user_rect_y1 =256
+ dwiz_user_rect_x2 =1035
+ dwiz_user_rect_y2 =308
  dwiz_show_political =true
  dwiz_center_over_gmt =true
- dwiz_latlon_space_in_deg =5
+ dwiz_latlon_space_in_deg =10
  dwiz_latlon_linecolor =-8355712
- dwiz_map_scale_pct =50.0
+ dwiz_map_scale_pct =12.5
  dwiz_map_vert_scrollbar_pos =0
- dwiz_map_horiz_scrollbar_pos =0
+ dwiz_map_horiz_scrollbar_pos =701
  dwiz_gridpt_dist_km =6.0
- dwiz_mpi_command =
+ dwiz_mpi_command =null
  dwiz_tcvitals =null
  dwiz_bigmap =Y
 /
