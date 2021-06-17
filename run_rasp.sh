@@ -35,6 +35,8 @@ exec 2<>"${ERR_FILE}"
 
 
 source $RUN_DIR/rasp_env.sh
+FOLDER_WRF=$FOLDER_INSTALL/WRF
+FOLDER_WPS=$FOLDER_INSTALL/WPS
 
 
 DOMAIN=`./get_domain.py | head -n 1 | tail -n 1`
@@ -67,12 +69,12 @@ echo "Setting up the inputs for RUN"
 #### Prepare namelists
 rm namelist.*
 python3 inputer.py
-ln -s "${RUN_DIR}/namelist.wps" "${FOLDER_INSTALL}/WPS/"
-ln -s "${RUN_DIR}/namelist.input" "${FOLDER_INSTALL}/WPS/"
-ln -s "${RUN_DIR}/namelist.input" "${FOLDER_INSTALL}/WRF/run/"
+ln -s "${RUN_DIR}/namelist.wps" "${FOLDER_WPS}/"
+ln -s "${RUN_DIR}/namelist.input" "${FOLDER_WPS}/"
+ln -s "${RUN_DIR}/namelist.input" "${FOLDER_WRF}/run/"
 echo "WPS/WRF Input files:"
-ls ${FOLDER_INSTALL}/WPS/namelist.*
-ls ${FOLDER_INSTALL}/WRF/run/namelist.*
+ls ${FOLDER_WPS}/namelist.*
+ls ${FOLDER_WRF}/run/namelist.*
 
 #### Download GFS data
 echo "Downloading GFS data"
@@ -98,7 +100,7 @@ fi
 
 (
 #### WPS
-cd "$FOLDER_INSTALL/WPS"
+cd "$FOLDER_WPS"
 echo "Running geogrid"
 time ./geogrid.exe >& log.geogrid
 grep "Successful completion of geogrid" log.geogrid
@@ -143,7 +145,7 @@ fi
 (
 #### WRF
 echo "Going for WRF"
-cd $FOLDER_INSTALL/WRF/run
+cd $FOLDER_WRF/run
 ln -sf $DOMAIN/met_em* .
 echo "met* files are present:"
 ls met_em*
