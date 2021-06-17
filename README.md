@@ -22,7 +22,8 @@ RASP by Uri & Noel
 - - [ ] merge Guadarrama + Pirineos + ...
 ### General
 - [x] Old computer for testing
-- [ ] Web design & repo
+- [x] Web repo
+- [ ] Web design
 - [ ] Bot & repo
 - [ ] Documentation properties
 - - [ ] images
