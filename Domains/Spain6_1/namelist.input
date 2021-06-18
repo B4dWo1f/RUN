@@ -30,7 +30,7 @@ debug_level              = 50,
 output_ready_flag		    = .true.,
 /
 
-&domains                 
+&domains
 use_adaptive_time_step   = .true.,
 step_to_output_time      = .true.,
 target_cfl               =  1.2,  1.2,

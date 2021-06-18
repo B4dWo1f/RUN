@@ -42,6 +42,7 @@ class RunParams(object):
       com = f'mkdir -p {self.GFS_data_folder}'
       LG.info(f'creating folder {self.GFS_data_folder}')
       self.output_folder = output_folder
+      os.system(com)
       com = f'mkdir -p {self.output_folder}'
       LG.info(f'creating folder {self.output_folder}')
       os.system(com)
@@ -158,3 +159,5 @@ def load(fname='config.ini'):
                  leftlon, rightlon, toplat, bottomlat, Ncores, wait4batch)
 
    return R
+
+
