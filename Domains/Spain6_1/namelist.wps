@@ -25,7 +25,7 @@
  truelat1  = 39.872,
  truelat2  = 39.872,
  stand_lon = -3.307,
- geog_data_path = '/home/aeolus/Documents/WPS_GEOG',
+ geog_data_path = '/storage/WPS_GEOG',
  opt_geogrid_tbl_path = '../RUN/Domains/Spain6_1/',
  ref_x = 96.0,
  ref_y = 79.5,

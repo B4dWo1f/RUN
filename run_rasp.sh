@@ -54,6 +54,7 @@ echo -e "Ncores: ${Ncores}\n"
 (
 echo "Cleaning up previous runs"
 cd $1
+pwd
 #### Clean previous runs
 rm dataGFS/*
 rm RUN/namelist.wps RUN/namelist.input
@@ -62,12 +63,14 @@ rm WPS/namelist.wps WPS/namelist.input
 rm WPS/FILE* WPS/GRIBFILE.AA* WPS/*.log WPS/log.*
 rm WRF/run/namelist.input
 rm WRF/run/rsl.* WRF/run/wrfout* WRF/run/met_em*
+echo "cleaned"
 )
 
 
 (
-cd RUN
+cd $1/RUN
 echo "Setting up the inputs for RUN"
+pwd
 #### Prepare namelists
 rm namelist.*
 python3 inputer.py

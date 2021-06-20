@@ -23,14 +23,14 @@ FOL="/tmp/METEO_$ID"   # temporary folder to run
 mkdir -p ${FOL}
 (
 cd ${FOL}
-mkdir RUN WRF WPS dataGFS runtime
-ln -s /home/aeolus/METEO/RUNdev/* /tmp/METEO_$ID/RUN/
+mkdir -p RUN WRF/run WPS dataGFS runtime
+ln -s /home/aeolus/METEO/RUN/* /tmp/METEO_$ID/RUN/
 ln -s /home/aeolus/METEO/WRF/* /tmp/METEO_$ID/WRF/
+ln -s /home/aeolus/METEO/WRF/run/* /tmp/METEO_$ID/WRF/run/
 ln -s /home/aeolus/METEO/WPS/* /tmp/METEO_$ID/WPS/
 )
 
 (
-# cd $HOME/METEO/RUNdev
 cd ${FOL}/RUN/
 echo > run_rasp.err
 echo > run_rasp.log
