@@ -41,10 +41,10 @@ run_folder = f'{folder}/RUN'
 # domain = 'Spain6_1'  # now its an argument
 domains = 1,2   #XXX ignored since 18/6/2021 if it works, it should be removed
 gfs_folder = f'{folder}/dataGFS'
-Ncores = 15
-left,right = -17,8
-bottom,top = 30,48
-wait4batch = 40  # Minutes to keep trying for the last GFS batch
+Ncores = 14
+left,right = -17,8   # max bounding box for the biggest domain. It should have
+bottom,top = 30,48   # some extra margins for the projection deformation
+wait4batch = 40   # Minutes to keep trying for the lastest GFS batch
 
 config = configparser.ConfigParser()
 config['run'] = {}

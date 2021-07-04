@@ -2,13 +2,14 @@
 # -*- coding: UTF-8 -*-
 
 import os
-here = os.path.dirname(os.path.realpath(__file__))
+# here = os.path.dirname(os.path.realpath(__file__))
 is_cron = False
 fmt = '%d/%m/%Y-%H:%M'
 ################################# LOGGING ####################################
 import logging
 import log_help
-log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+# log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
 lv = logging.DEBUG
 logging.basicConfig(level=lv,
                  format='%(asctime)s %(name)s:%(levelname)s - %(message)s',

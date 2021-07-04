@@ -18,22 +18,6 @@ exec 2<&-
 exec 2<>"${ERR_FILE}"
 
 
-# changes in namelist.input
-# run_days, run_hours...
-# start_year,month,day,hour...
-# end_year,month,day,hour...
-# interval_seconds  3600
-# history  60 60
-# frames_per_outfile 1, 1
-# num_metgrid_levels       = 34,
-
-
-# changes in namelist.wps
-# start_date
-# end_date
-# interval_seconds
-
-
 source $RUN_DIR/rasp_env.sh
 FOLDER_tmp=/tmp/METEO
 FOLDER_WRF=${FOLDER_tmp}/WRF
@@ -49,6 +33,7 @@ echo -e "Starting RUN"
 echo -e "Domain         : ${DOMAIN}"
 echo -e "GFS Data Folder: ${GFSdata} "
 echo -e "Ncores: ${Ncores}\n"
+echo -e "OMP: ${OMP_NUM_THREADS}\n"
 
 
 (
@@ -83,7 +68,6 @@ ls $1/WRF/run/namelist.*
 
 #### Download GFS data
 echo "Downloading GFS data"
-echo "Start" $2 $3 `date` >> TIME_download.txt
 time python3 download_gfs_data.py
 if [ $? -eq 0 ]; then
    echo "GFS data downloaded to ${GFSdata}:"
@@ -92,7 +76,6 @@ else
    1>&2 echo "Error downloading GFS data"
    exit 1
 fi
-echo "End" $2 $3 `date` >> TIME_download.txt
 )
 # Check Input and GFS section
 if [ $? -eq 0 ]; then
@@ -167,6 +150,7 @@ fi
 echo -e "\nStarting wrf.exe"
 T0=`date`
 time mpirun -np $Ncores ./wrf.exe
+# time mpirun -np $Ncores --map-by node:PE=$OMP_NUM_THREADS --rank-by core ./wrf.exe
 echo "Start" $2 $3 $T0 >> /storage/WRFOUT/TIME.txt
 echo "End" $2 $3 `date` >> /storage/WRFOUT/TIME.txt
 tail -n 1 rsl.error.0000 | grep -w SUCCESS

@@ -19,15 +19,17 @@ ID=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 4 | head -n 1)
 
 FOL="/tmp/METEO_$ID"   # temporary folder to run
 
+rm $HOME/errors.txt
+touch $HOME/errors.txt
 
 mkdir -p ${FOL}
 (
 cd ${FOL}
 mkdir -p RUN WRF/run WPS dataGFS runtime
 ln -s /home/aeolus/METEO/RUN/* /tmp/METEO_$ID/RUN/
-ln -s /home/aeolus/METEO/WRF/* /tmp/METEO_$ID/WRF/
-ln -s /home/aeolus/METEO/WRF/run/* /tmp/METEO_$ID/WRF/run/
 ln -s /home/aeolus/METEO/WPS/* /tmp/METEO_$ID/WPS/
+ln -s /home/aeolus/METEO/WRF/run/* /tmp/METEO_$ID/WRF/run/
+ln -s /home/aeolus/METEO/WRF/* /tmp/METEO_$ID/WRF/
 )
 
 (

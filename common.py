@@ -35,7 +35,7 @@ class RunParams(object):
       for h in daily_hours:
          aux.append(dt.datetime.combine(dt.date(1,1,1),h) - UTCshift)
       self.daily_hours = [h.time()  for h in aux]
-      LG.info(f'Daily hour mask: {self.daily_hours}')
+      LG.info(f'Daily hour mask: {[x.hour for x in self.daily_hours]}')
       self.domains = domains
       self.domain_folder = domain_folder
       self.GFS_data_folder = GFS_data_folder
