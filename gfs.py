@@ -19,13 +19,14 @@ log_help.screen_handler(LG, lv=logging.DEBUG)
 fmt = '%d/%m/%Y-%H:%M'
 
 
-def get_GFS_calc(date, shift = 3+40/60):
+def get_GFS_calc(date, shift = 3+35/60, date_req=None):
    """
    This function returns the expected datetime of the latest GFS data for the
    provided date.
    date: [datetime.datetime] target date
    shift: [float] hours since batch name. ej: data from batch 06 is not usually
           available before 9:40
+   date_req: [datetime.datetime] date when the request is made. If None, use now
    Returns:
    dateGFS: [datetime.datetime]
    """
@@ -33,13 +34,22 @@ def get_GFS_calc(date, shift = 3+40/60):
    # inds = list(np.argsort(hours))
    # ind = inds.index(4)-1
    # dateGFS = date.replace( hour=hours[ind], minute=0, second=0,microsecond=0)
+   if date_req == None: date_req = dt.datetime.utcnow()
+   # GFS batch according to data
    GFS = list(range(0,24,6))
-   hours = [h+shift for h in GFS] + [date.hour+date.minute/60]
+   hours = [h for h in GFS] + [date.hour+date.minute/60]
    inds = list(np.argsort(hours))
    ind = (inds.index(4)-1) % len(GFS)
    dateGFS = date.replace(hour=GFS[ind],minute=0,second=0,microsecond=0)
    if dateGFS>date: dateGFS -= dt.timedelta(days=1)
-   return dateGFS
+   # GFS batch according to data availability
+   GFS = list(range(0,24,6))
+   hours = [h+shift for h in GFS] + [date_req.hour+date_req.minute/60]
+   inds = list(np.argsort(hours))
+   ind = (inds.index(4)-1) % len(GFS)
+   dateGFS1 = date_req.replace(hour=GFS[ind],minute=0,second=0,microsecond=0)
+   if dateGFS1>date: dateGFS1 -= dt.timedelta(days=1)
+   return min([dateGFS,dateGFS1])
 
 
 def checker(folder,files,mode='ftp'):
