@@ -85,6 +85,7 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
    base_url = 'https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?'
 ### Ensure all data from same GFS run XXX check!
    now = dt.datetime.utcnow()
+   LG.info(f"earliest data: {min(dates).strftime('%Y/%m/%d/%H:00')}")
    batch = min([min(dates), now])
    batch = get_GFS_calc(batch)
    LG.info(f"Tentative GFS batch: {batch.strftime('%Y%m%d/%H')}")

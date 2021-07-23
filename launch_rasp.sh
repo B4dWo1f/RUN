@@ -25,7 +25,8 @@ touch $HOME/errors.txt
 mkdir -p ${FOL}
 (
 cd ${FOL}
-mkdir -p RUN WRF/run WPS dataGFS runtime
+mkdir -p RUN WRF/run WPS dataGFS
+#runtime
 ln -s /home/aeolus/METEO/RUN/* /tmp/METEO_$ID/RUN/
 ln -s /home/aeolus/METEO/WPS/* /tmp/METEO_$ID/WPS/
 ln -s /home/aeolus/METEO/WRF/run/* /tmp/METEO_$ID/WRF/run/
@@ -43,3 +44,12 @@ time ./run_rasp.sh ${FOL} $2 $3
 )
 
 rm -r ${FOL}   # delete folder (XXX no debugging!!!)
+
+if [ -s $HOME/errors.txt ]
+then
+   echo "`date` there were CFL errors"
+   cp $HOME/errors.txt $HOME/errors_`date '+%Y%m%d_%H%M'`.txt
+else
+   echo "`date` NO CFL errors"
+fi
+
