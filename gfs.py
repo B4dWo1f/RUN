@@ -78,7 +78,9 @@ def checker(folder,files,mode='ftp'):
       return True
    else:
       missing_files = set(files) - (set(files) & set(server_files))
-      LG.warning(f'Missing {len(missing_files)} files')
+      LG.warning(f'Missing {len(missing_files)} files:')
+      for f in missing_files:
+          LG.warning(f)
       return False
 
 
