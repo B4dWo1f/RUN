@@ -19,6 +19,7 @@ ID=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 4 | head -n 1)
 
 FOL="/tmp/METEO_$ID"   # temporary folder to run
 
+killall wrf.exe 2> /dev/null
 rm $HOME/errors.txt
 touch $HOME/errors.txt
 
@@ -45,6 +46,7 @@ time ./run_rasp.sh ${FOL} $2 $3
 
 rm -r ${FOL}   # delete folder (XXX no debugging!!!)
 
+# Store CFL error files
 if [ -s $HOME/errors.txt ]
 then
    echo "`date` there were CFL errors"
