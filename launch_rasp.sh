@@ -3,7 +3,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 #
 # This script provides generate_config.py the arguments to generate a
-# config gile to run run_rasp.sh
+# config file to run run_rasp.sh
 # Arguments:
 #   $1 = domain
 #   $2 = day
@@ -12,7 +12,8 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 # Usage:
 #   launch_rasp.sh <domain> <+day> <h0,h1>
 # Example:
-#   launch_rasp.sh Spain6_1 1 8,9
+#   launch_rasp.sh Spain6_1 1 8,20
+# this command would run WRF for tomorrow since 9:00 till 20:00
 #
 
 ID=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 4 | head -n 1)

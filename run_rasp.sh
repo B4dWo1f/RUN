@@ -1,6 +1,10 @@
 #!/bin/bash
 RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
+#
+# This scripts runs WRF for a given domain and and time
+#
+
 # STDOUT to log
 LOG_FILE="${RUN_DIR}/run_rasp.log"
 echo > "${LOG_FILE}"
