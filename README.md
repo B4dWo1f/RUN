@@ -27,3 +27,4 @@ RASP by Uri & Noel
 - [ ] Documentation properties
 - - [ ] images
 - - [ ] soundings full explanation
+- [ ] Remove plots folder
