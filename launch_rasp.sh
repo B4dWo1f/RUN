@@ -29,10 +29,10 @@ mkdir -p ${FOL}
 cd ${FOL}
 mkdir -p RUN WRF/run WPS dataGFS
 #runtime
-ln -s /home/aeolus/METEO/RUN/* /tmp/METEO_$ID/RUN/
-ln -s /home/aeolus/METEO/WPS/* /tmp/METEO_$ID/WPS/
-ln -s /home/aeolus/METEO/WRF/run/* /tmp/METEO_$ID/WRF/run/
-ln -s /home/aeolus/METEO/WRF/* /tmp/METEO_$ID/WRF/
+ln -s $HOME/METEO/RUN/* /tmp/METEO_$ID/RUN/
+ln -s $HOME/METEO/WPS/* /tmp/METEO_$ID/WPS/
+ln -s $HOME/METEO/WRF/run/* /tmp/METEO_$ID/WRF/run/
+ln -s $HOME/METEO/WRF/* /tmp/METEO_$ID/WRF/
 )
 
 (
