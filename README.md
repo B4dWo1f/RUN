@@ -5,10 +5,10 @@ RASP by Uri & Noel
 ### Post-Processing
 - [x] Optimize plots (no replot terrain, or frontiers)
 - [ ] Update matplotlib version to fix heights axis
-- [ ] zoom for post-process
+- [x] zoom for post-process
 - [ ] Improve Colormap to highlight differences in small regions while keeping the blue-green-yellow-red scale of difficulty
 - [ ] cloud fraction to "cloud satellite" or something
-- [ ] Implement low, mid, high clouds (frac)
+- [x] Implement low, mid, high clouds (frac)
 ### WRF/RUN
 - [ ] Add option to discard first N wrfout files
 - [ ] Fix mask_days for longer runs [break in days]
@@ -22,7 +22,8 @@ RASP by Uri & Noel
 - - [ ] merge Guadarrama + Pirineos + ...
 ### General
 - [x] Old computer for testing
-- [ ] Web design & repo
+- [x] Web repo
+- [ ] Web design
 - [ ] Bot & repo
 - [ ] Documentation properties
 - - [ ] images
