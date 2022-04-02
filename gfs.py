@@ -239,6 +239,7 @@ def download_file(url,fout):
    sleep(5*random())  # to avoid banning
    LG.info(f'Downloading {url}')
    req = requests.get(url)
+   LG.info(f'Response: {req}')
    fid = open(fout, 'wb')
    fid.write(req.content)
    fid.close()
