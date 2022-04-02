@@ -2,13 +2,14 @@
 # -*- coding: UTF-8 -*-
 
 import os
-here = os.path.dirname(os.path.realpath(__file__))
+# here = os.path.dirname(os.path.realpath(__file__))
 is_cron = False
 fmt = '%d/%m/%Y-%H:%M'
 ################################# LOGGING ####################################
 import logging
 import log_help
-log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+# log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
 lv = logging.DEBUG
 logging.basicConfig(level=lv,
                  format='%(asctime)s %(name)s:%(levelname)s-%(message)s',
@@ -29,6 +30,7 @@ R = common.load(fini)
 LG.info(f'{R.start_date} - {R.end_date}')
 current_date = R.start_date
 step = dt.timedelta(hours=1)  #XXX should be in config.ini
+max_tries = 5
 dates_calc = []
 while current_date <= R.end_date:
    if R.daily_hours[0] <= current_date.time() <= R.daily_hours[1]:
@@ -36,10 +38,10 @@ while current_date <= R.end_date:
    current_date += step
 
 cont = 0
-while cont < 5:
+while cont < max_tries:
     try:
         got_all_files = gfs.get_files(R, dates_calc, R.GFS_data_folder,
                                       wait4batch=R.wait4batch)
-        if got_all_files: cont = 1000  # XXX dumb ways to exit...
+        if got_all_files: cont = 2*max_tries  # XXX dumb ways to exit...
     except:
         cont += 1

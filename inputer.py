@@ -2,13 +2,14 @@
 # -*- coding: UTF-8 -*-
 
 import os
-here = os.path.dirname(os.path.realpath(__file__))
+# here = os.path.dirname(os.path.realpath(__file__))
 is_cron = False
 fmt = '%d/%m/%Y-%H:%M'
 ################################# LOGGING ####################################
 import logging
 import log_help
-log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+# log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
 lv = logging.DEBUG
 logging.basicConfig(level=lv,
                  format='%(asctime)s %(name)s:%(levelname)s - %(message)s',
@@ -34,20 +35,21 @@ with open(fname,'r') as f:
    all_text = []
    for line in f.read().strip().splitlines():
       if line.strip().startswith('max_dom'):
-         line = f' max_dom = {len(R.domains)},'
+         # line = f' max_dom = {len(R.domains)},'  #XXX do not edit in namelists
+         Ndomains = int(line.strip().split('=')[-1].strip().replace(',',''))
       elif line.strip().startswith('start_date'):
          line = f"start_date = "
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f"\'{R.start_date.strftime('%Y-%m-%d_%H:%M:%S')}\', "
          line = ' ' + line.strip()
       elif line.strip().startswith('end_date'):
          line = f"end_date   = "
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f"\'{R.end_date.strftime('%Y-%m-%d_%H:%M:%S')}\', "
          line = ' ' + line.strip()
       all_text.append(line)
 
-with open(f'{here}/namelist.wps','w') as f:
+with open(f'namelist.wps','w') as f:
    f.write('\n'.join(all_text)+'\n\n')
 
 
@@ -96,66 +98,66 @@ with open(fname,'r') as f:
          line = f'run_seconds              = {run_seconds},'
       if line.strip().startswith('start_year'):
          line = f'start_year               = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{start_year},     '
          line = line.strip()
       elif line.strip().startswith('start_month'):
          line = f'start_month              = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{start_month:02d},       '
          line = line.strip()
       elif line.strip().startswith('start_day'):
          line = f'start_day                = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{start_day:02d},       '
          line = line.strip()
       elif line.strip().startswith('start_hour'):
          line = f'start_hour               = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{start_hour:02d},       '
          line = line.strip()
       elif line.strip().startswith('start_minute'):
          line = f'start_minute             = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{start_minute:02d},       '
          line = line.strip()
       elif line.strip().startswith('start_second'):
          line = f'start_second             = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{start_second:02d},       '
          line = line.strip()
       elif line.strip().startswith('end_year'):
          line = f'end_year                 = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{end_year},     '
          line = line.strip()
       elif line.strip().startswith('end_month'):
          line = f'end_month                = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{end_month:02d},       '
          line = line.strip()
       elif line.strip().startswith('end_day'):
          line = f'end_day                  = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{end_day:02d},       '
          line = line.strip()
       elif line.strip().startswith('end_hour'):
          line = f'end_hour                 = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{end_hour:02d},       '
          line = line.strip()
       elif line.strip().startswith('end_minute'):
          line = f'end_minute               = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{end_minute:02d},       '
          line = line.strip()
       elif line.strip().startswith('end_second'):
          line = f'end_second               = '
-         for _ in R.domains:
+         for _ in range(Ndomains):   #R.domains:
             line += f'{end_second:02d},       '
          line = line.strip()
       all_text.append(line)
 
 
-with open(f'{here}/namelist.input','w') as f:
+with open(f'namelist.input','w') as f:
    f.write('\n'.join(all_text)+'\n\n')

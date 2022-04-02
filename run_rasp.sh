@@ -1,6 +1,10 @@
 #!/bin/bash
 RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
+#
+# This scripts runs WRF for a given domain and and time
+#
+
 # STDOUT to log
 LOG_FILE="${RUN_DIR}/run_rasp.log"
 echo > "${LOG_FILE}"
@@ -18,25 +22,10 @@ exec 2<&-
 exec 2<>"${ERR_FILE}"
 
 
-# changes in namelist.input
-# run_days, run_hours...
-# start_year,month,day,hour...
-# end_year,month,day,hour...
-# interval_seconds  3600
-# history  60 60
-# frames_per_outfile 1, 1
-# num_metgrid_levels       = 34,
-
-
-# changes in namelist.wps
-# start_date
-# end_date
-# interval_seconds
-
-
 source $RUN_DIR/rasp_env.sh
-FOLDER_WRF=$FOLDER_INSTALL/WRF
-FOLDER_WPS=$FOLDER_INSTALL/WPS
+FOLDER_tmp=/tmp/METEO
+FOLDER_WRF=${FOLDER_tmp}/WRF
+FOLDER_WPS=${FOLDER_tmp}/WPS
 
 
 DOMAIN=`./get_domain.py | head -n 1 | tail -n 1`
@@ -48,37 +37,41 @@ echo -e "Starting RUN"
 echo -e "Domain         : ${DOMAIN}"
 echo -e "GFS Data Folder: ${GFSdata} "
 echo -e "Ncores: ${Ncores}\n"
+echo -e "OMP: ${OMP_NUM_THREADS}\n"
 
 
 (
 echo "Cleaning up previous runs"
-cd "${FOLDER_INSTALL}"
+cd $1
+pwd
 #### Clean previous runs
+rm dataGFS/*
+rm RUN/namelist.wps RUN/namelist.input
+# rm "${DOMAIN}"/met_em* "${DOMAIN}"/geo_em.*
 rm WPS/namelist.wps WPS/namelist.input
 rm WPS/FILE* WPS/GRIBFILE.AA* WPS/*.log WPS/log.*
 rm WRF/run/namelist.input
 rm WRF/run/rsl.* WRF/run/wrfout* WRF/run/met_em*
-rm "${GFSdata}"/*
-rm "${RUN_DIR}"/namelist.wps "${RUN_DIR}"/namelist.input
-rm "${DOMAIN}"/met_em* "${DOMAIN}"/geo_em.*
+echo "cleaned"
 )
 
+
 (
-cd "${RUN_DIR}"
+cd $1/RUN
 echo "Setting up the inputs for RUN"
+pwd
 #### Prepare namelists
 rm namelist.*
 python3 inputer.py
-ln -s "${RUN_DIR}/namelist.wps" "${FOLDER_WPS}/"
-ln -s "${RUN_DIR}/namelist.input" "${FOLDER_WPS}/"
-ln -s "${RUN_DIR}/namelist.input" "${FOLDER_WRF}/run/"
+ln -s "$1/RUN/namelist.wps" "$1/WPS/"
+ln -s "$1/RUN/namelist.input" "$1/WPS/"
+ln -s "$1/RUN/namelist.input" "$1/WRF/run/"
 echo "WPS/WRF Input files:"
-ls ${FOLDER_WPS}/namelist.*
-ls ${FOLDER_WRF}/run/namelist.*
+ls $1/WPS/namelist.*
+ls $1/WRF/run/namelist.*
 
 #### Download GFS data
 echo "Downloading GFS data"
-echo "Start" $1 $2 `date` >> TIME_download.txt
 time python3 download_gfs_data.py
 if [ $? -eq 0 ]; then
    echo "GFS data downloaded to ${GFSdata}:"
@@ -87,7 +80,6 @@ else
    1>&2 echo "Error downloading GFS data"
    exit 1
 fi
-echo "End" $1 $2 `date` >> TIME_download.txt
 )
 # Check Input and GFS section
 if [ $? -eq 0 ]; then
@@ -100,7 +92,7 @@ fi
 
 (
 #### WPS
-cd "$FOLDER_WPS"
+cd $1/WPS
 echo "Running geogrid"
 time ./geogrid.exe >& log.geogrid
 grep "Successful completion of geogrid" log.geogrid
@@ -127,7 +119,7 @@ grep -i "Successful completion of program metgrid.exe" metgrid.log
 if [ $? -eq 0 ]; then
    echo "Metgrid was successful"
    echo 'Metgrid met_em* files:'
-   ls $DOMAIN/met_em*
+   ls $1/WPS/met_em*
 else
    1>&2 echo "Error running Metgrid"
    exit 1
@@ -145,8 +137,8 @@ fi
 (
 #### WRF
 echo "Going for WRF"
-cd $FOLDER_WRF/run
-ln -sf $DOMAIN/met_em* .
+cd $1/WRF/run
+ln -sf $1/WPS/met_em* .
 echo "met* files are present:"
 ls met_em*
 echo -e "\nStarting real.exe"
@@ -160,9 +152,11 @@ fi
 
 # WRF
 echo -e "\nStarting wrf.exe"
-echo "Start" $1 $2 `date` >> TIME.txt
-/usr/bin/time -f "%E" -a -o zTIME.txt mpirun -np $Ncores ./wrf.exe
-echo "End" $1 $2 `date` >> TIME.txt
+T0=`date`
+time mpirun -np $Ncores ./wrf.exe
+# time mpirun -np $Ncores --map-by node:PE=$OMP_NUM_THREADS --rank-by core ./wrf.exe
+echo "Start" $2 $3 $T0 >> /storage/WRFOUT/TIME.txt
+echo "End" $2 $3 `date` >> /storage/WRFOUT/TIME.txt
 tail -n 1 rsl.error.0000 | grep -w SUCCESS
 if [ $? -eq 0 ]; then
    echo "WRF worked!!"

@@ -19,13 +19,14 @@ log_help.screen_handler(LG, lv=logging.DEBUG)
 fmt = '%d/%m/%Y-%H:%M'
 
 
-def get_GFS_calc(date, shift = 3+40/60):
+def get_GFS_calc(date, shift = 3+35/60, date_req=None):
    """
    This function returns the expected datetime of the latest GFS data for the
    provided date.
    date: [datetime.datetime] target date
    shift: [float] hours since batch name. ej: data from batch 06 is not usually
           available before 9:40
+   date_req: [datetime.datetime] date when the request is made. If None, use now
    Returns:
    dateGFS: [datetime.datetime]
    """
@@ -33,13 +34,22 @@ def get_GFS_calc(date, shift = 3+40/60):
    # inds = list(np.argsort(hours))
    # ind = inds.index(4)-1
    # dateGFS = date.replace( hour=hours[ind], minute=0, second=0,microsecond=0)
+   if date_req == None: date_req = dt.datetime.utcnow()
+   # GFS batch according to data
    GFS = list(range(0,24,6))
-   hours = [h+shift for h in GFS] + [date.hour+date.minute/60]
+   hours = [h for h in GFS] + [date.hour+date.minute/60]
    inds = list(np.argsort(hours))
    ind = (inds.index(4)-1) % len(GFS)
    dateGFS = date.replace(hour=GFS[ind],minute=0,second=0,microsecond=0)
    if dateGFS>date: dateGFS -= dt.timedelta(days=1)
-   return dateGFS
+   # GFS batch according to data availability
+   GFS = list(range(0,24,6))
+   hours = [h+shift for h in GFS] + [date_req.hour+date_req.minute/60]
+   inds = list(np.argsort(hours))
+   ind = (inds.index(4)-1) % len(GFS)
+   dateGFS1 = date_req.replace(hour=GFS[ind],minute=0,second=0,microsecond=0)
+   if dateGFS1>date: dateGFS1 -= dt.timedelta(days=1)
+   return min([dateGFS,dateGFS1])
 
 
 def checker(folder,files,mode='ftp'):
@@ -68,7 +78,9 @@ def checker(folder,files,mode='ftp'):
       return True
    else:
       missing_files = set(files) - (set(files) & set(server_files))
-      LG.warning(f'Missing {len(missing_files)} files')
+      LG.warning(f'Missing {len(missing_files)} files:')
+      for f in missing_files:
+          LG.warning(f)
       return False
 
 
@@ -85,6 +97,7 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
    base_url = 'https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?'
 ### Ensure all data from same GFS run XXX check!
    now = dt.datetime.utcnow()
+   LG.info(f"earliest data: {min(dates).strftime('%Y/%m/%d/%H:00')}")
    batch = min([min(dates), now])
    batch = get_GFS_calc(batch)
    LG.info(f"Tentative GFS batch: {batch.strftime('%Y%m%d/%H')}")
@@ -123,9 +136,9 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
 ### Download
    LG.info(f"Correct GFS batch: {batch.strftime('%Y%m%d/%H')}")
    LG.info(f"Starting download of GFS data")
-   with open(f'{here}/plots/batch.txt','w') as f_batch:
-       f_batch.write(batch.strftime(fmt))
-   LG.critical(f'{Params.output_folder}/batch.txt')
+   # with open(f'{here}/plots/batch.txt','w') as f_batch:
+   #     f_batch.write(batch.strftime(fmt))
+   LG.info(f'saved: {Params.output_folder}/batch.txt')
    with open(f'{Params.output_folder}/batch.txt','w') as f_batch:
        f_batch.write(batch.strftime(fmt))
    # Prepare all inputs for parallel download
@@ -226,6 +239,7 @@ def download_file(url,fout):
    sleep(5*random())  # to avoid banning
    LG.info(f'Downloading {url}')
    req = requests.get(url)
+   LG.info(f'Response: {req}')
    fid = open(fout, 'wb')
    fid.write(req.content)
    fid.close()
