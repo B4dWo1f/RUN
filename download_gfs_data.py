@@ -29,19 +29,19 @@ R = common.load(fini)
 
 LG.info(f'{R.start_date} - {R.end_date}')
 current_date = R.start_date
-step = dt.timedelta(hours=1)  #XXX should be in config.ini
+step = dt.timedelta(hours=R.GFS_timedelta)  #XXX should be in config.ini
 max_tries = 5
 dates_calc = []
 while current_date <= R.end_date:
-   if R.daily_hours[0] <= current_date.time() <= R.daily_hours[1]:
-      dates_calc.append((current_date))
+   # if R.daily_hours[0] <= current_date.time() <= R.daily_hours[1]:
+   dates_calc.append((current_date))
    current_date += step
 
 cont = 0
 while cont < max_tries:
-    try:
-        got_all_files = gfs.get_files(R, dates_calc, R.GFS_data_folder,
-                                      wait4batch=R.wait4batch)
-        if got_all_files: cont = 2*max_tries  # XXX dumb ways to exit...
-    except:
-        cont += 1
+   try:
+      got_all_files = gfs.get_files(R, dates_calc, R.GFS_data_folder,
+                                    wait4batch=R.wait4batch)
+      if got_all_files: cont = 2*max_tries  # XXX dumb ways to exit...
+   except:
+      cont += 1
