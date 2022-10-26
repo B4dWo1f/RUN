@@ -4,6 +4,7 @@
 import os
 # here = os.path.dirname(os.path.realpath(__file__))
 is_cron = False
+is_cron = bool( os.getenv('RUN_BY_CRON') )
 fmt = '%d/%m/%Y-%H:%M'
 ################################# LOGGING ####################################
 import logging

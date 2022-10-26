@@ -27,6 +27,12 @@ def main(folder, domain, start_date, end_date, timedelta=1,
    Ncores: [int] Number of cores to run WRF
    wait4batch: [float] Minutes to keep trying for the lastest GFS batch
    """
+   LG.info('Parameters recived:')
+   LG.info(f'RUN folder: {folder}')
+   LG.info(f'Domain: {domain}')
+   LG.info(f'Dates: {start_date} - {end_date}')
+   LG.info(f'Time delta: {timedelta}')
+   LG.info(f'OUT folder: {folder_out}')
    fmt = '%d/%m/%Y-%H:%M'
    # daily_hours = [start_date.hour,end_date.hour]
    # Folders
@@ -65,21 +71,18 @@ def main(folder, domain, start_date, end_date, timedelta=1,
 
 
 if __name__ == '__main__':
+   is_cron = False
+   is_cron = bool( os.getenv('RUN_BY_CRON') )
 ################################# LOGGING ####################################
    import logging
+   import log_help
    log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
    lv = logging.DEBUG
    fmt='%(asctime)s:%(name)s:%(levelname)s: %(message)s'
    logging.basicConfig(level=lv, format=fmt, datefmt='%Y/%m/%d-%H:%M:%S',
                                  filename = log_file, filemode='w')
    LG = logging.getLogger('main')
-########## Screen Logger (optional) ##########
-   sh = logging.StreamHandler()                 #
-   sh.setLevel(logging.INFO)                    #
-   fmt = '%(name)s:%(levelname)s: %(message)s'  #
-   fmt = logging.Formatter(fmt)                 #
-   sh.setFormatter(fmt)                         #
-   LG.addHandler(sh)                            #
+   if not is_cron: log_help.screen_handler(LG, lv=lv)
 ##############################################################################
    LG.info(f'Starting: {__file__}')
    import sys
@@ -105,7 +108,6 @@ if __name__ == '__main__':
    start_date = start_date + dt.timedelta(days = days)
    end_date = start_date.replace(hour=end)
    timedelta = 1   # hourly data
-   main(folder, domain, start_date, end_date, timedelta,
-        folder_out='/tmp/METEO', lglv='debug',
+   main(folder, domain, start_date, end_date, timedelta, lglv='debug',
         left=-17, right=8, bottom=30, top=48,
         Ncores=14, wait4batch=40)
