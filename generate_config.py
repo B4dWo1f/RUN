@@ -6,7 +6,9 @@ import configparser
 from configparser import ConfigParser, ExtendedInterpolation
 from os.path import expanduser
 import datetime as dt
-
+import logging
+try: LG
+except NameError: LG = logging.getLogger(__name__)
 
 def main(folder, domain, start_date, end_date, timedelta=1,
          folder_out='/storage', lglv='debug',
@@ -74,7 +76,6 @@ if __name__ == '__main__':
    is_cron = False
    is_cron = bool( os.getenv('RUN_BY_CRON') )
 ################################# LOGGING ####################################
-   import logging
    import log_help
    log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
    lv = logging.DEBUG

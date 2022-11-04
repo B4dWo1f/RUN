@@ -2,6 +2,8 @@
 # -*- coding: UTF-8 -*-
 
 import os
+is_cron = False
+is_cron = bool( os.getenv('RUN_BY_CRON') )
 from time import time
 import datetime as dt
 import numpy as np
@@ -12,10 +14,26 @@ import pygrib # import pygrib interface to grib_api
 import cartopy.crs as ccrs
 from matplotlib.colors import BoundaryNorm
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
+from scipy.ndimage.filters import gaussian_filter
+from skimage.feature import peak_local_max
 import matplotlib.pyplot as plt
 try: plt.style.use('mystyle')
 except: pass
 
+################################# LOGGING ####################################
+import logging
+import log_help
+log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+# log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+lv = logging.DEBUG
+logging.basicConfig(level=lv,
+                 format='%(asctime)s %(name)s:%(levelname)s-%(message)s',
+                 datefmt='%Y/%m/%d-%H:%M',
+                 filename = log_file, filemode='w')
+LG = logging.getLogger('main')
+if not is_cron: log_help.screen_handler(LG, lv=lv)
+LG.info(f'Starting: {__file__}')
+##############################################################################
 
 #### Colormaps ##################################################################
 # Frentes
@@ -79,6 +97,7 @@ def WTFF(inps):
    # Pressure
    press = grbs.select(name='Pressure reduced to MSL')
    press = press[0]   # in Pa
+   press.values = gaussian_filter(press.values, 3)
    # Clouds
    clouds = grbs.select(name='Total Cloud Cover')
    clouds = clouds[22]
@@ -95,12 +114,12 @@ def WTFF(inps):
    temp = temp.values * units(temp['parameterUnits'])
    potential_temperature = mpcalc.potential_temperature(isopress, temp)
 
-   # F = mpcalc.frontogenesis(potential_temperature,
-   #                          U.values * units(U['parameterUnits']),
-   #                          V.values * units(V['parameterUnits']),
-   #                          dx=dx, dy=dy)
-   # convert_to_per_100km_3h = 1000*100*3600*3
-   # fronto =  F.magnitude * convert_to_per_100km_3h
+   F = mpcalc.frontogenesis(potential_temperature,
+                            U.values * units(U['parameterUnits']),
+                            V.values * units(V['parameterUnits']),
+                            dx=dx, dy=dy)
+   convert_to_per_100km_3h = 1000*100*3600*3
+   fronto =  F.magnitude * convert_to_per_100km_3h
 
    ref_lon = -3.7
    ref_lat = 40.4
@@ -108,42 +127,45 @@ def WTFF(inps):
    # left,right,bottom,top = -40, 30, 20, 70
 
    orto = ccrs.PlateCarree()
-   proj = ccrs.Mercator(ref_lon, bottom, top)
-   # proj = ccrs.Orthographic(ref_lon, ref_lat)
-
-   fig = plt.figure(figsize=(13,8.5), frameon=False)
+   mercator = True
+   if mercator:
+      proj = ccrs.Mercator(ref_lon, bottom, top)
+      fig = plt.figure(figsize=(14,9.15), frameon=False)
+   else:
+      proj = ccrs.Orthographic(ref_lon, ref_lat)
+      fig = plt.figure(figsize=(14,8.6), frameon=False)
    # ax = plt.axes(projection=projection)
    # ax = fig.add_axes([0,0,0.99,1], projection=proj)
    # ax = fig.add_axes([.125, .11, .775, .77], projection=proj)
    ax = fig.add_axes([0,0,1,1], projection=proj)
    ax.set_extent(extent, crs=orto)
 
-   color = np.array([102,42,27])/255
+   color = np.array([130,42,27])/255
    # ax.stock_img()
    # ax.coastlines(resolution='50m', color='w', linewidth=2.3, zorder=100)
-   ax.coastlines(resolution='50m', color=color, linewidth=1.5, zorder=101)
+   ax.coastlines(resolution='50m', color=color, linewidth=1.7, zorder=101)
    C = ax.contour(lons, lats, press.values/100, levels=range(804,1204,4),
-                                    colors='k', linewidths=.5,
+                                    colors='k', linewidths=.75,
                                     transform=orto)
    ax.clabel(C, inline=True, fontsize=10, fmt='%d')
    C = ax.contour(lons, lats, press.values/100, levels=range(804,1204,16),
-                                    colors='k', linewidths=1.5, zorder=102,
+                                    colors='k', linewidths=1.75, zorder=102,
                                     transform=orto)
    ax.clabel(C, inline=True, fontsize=10, fmt='%d')
    # print('Plotting frontogenesis')
    # print(np.nanmin(F))
    # print(np.nanmax(F))
 
-   print('Plotting fronts')
    l = 1
-   # C = ax.contourf(lons[::l,::l],
-   #                 lats[::l,::l],
-   #               fronto[::l,::l],
-   #                 # vmin=-8, vmax=8,
-   #                 np.arange(-6, 6.5, .5),
-   #                 cmap=cm_frentes,
-   #                 # cmap=plt.cm.bwr,
-   #                 extend='both', transform=orto)
+   print('Plotting fronts')
+   C = ax.contourf(lons[::l,::l],
+                   lats[::l,::l],
+                 fronto[::l,::l],
+                   # vmin=-8, vmax=8,
+                   np.arange(-6, 6.5, .5),
+                   cmap=cm_frentes,
+                   # cmap=plt.cm.bwr,
+                   extend='both', transform=orto)
    print('Plotting clouds')
    ax.contourf(lons[::l,::l],
                lats[::l,::l],
@@ -165,28 +187,49 @@ def WTFF(inps):
                       transform=orto)
    # plt.colorbar(rain, orientation='horizontal', pad=0, aspect=50, extendrect=True)
    print('Ploted')
+   ax.text(0.5, .99, f"{(fcstDate+UTCshift).strftime('%a %d %b')}",
+           transform = ax.transAxes, va='top', ha='center', fontsize=30,
+           bbox=dict(facecolor=(1,1,1,.8), ec='k', pad=10), zorder=1000)
    msg  = [f"valid: {(fcstDate+UTCshift).strftime('%Y-%m-%d %H:%M')}"]
    msg += [f"GFS: {(dataDate).strftime('%Y-%m-%d %H:%M')}"]
    msg += [f"plot: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}"]
    ax.text(0, .008, f'{isopress:~}',
            transform = ax.transAxes,
-           bbox=dict(facecolor=(1,1,1,.9), edgecolor='k', pad=5.0))
+           bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0), zorder=1000)
    ax.text(1, .008, '\n'.join(msg),
            transform = ax.transAxes, ha='right',
-           bbox=dict(facecolor=(1,1,1,.9), edgecolor='k', pad=5.0))
+           bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0), zorder=1000)
            # backgroundcolor=(1,1,1,.5), edgecolor='k')
    # ax.text(.008,.008,fcstDate+UTCshift,transform = ax.transAxes,
    #         backgroundcolor=(1,1,1,.5), edgecolor='k')
 # cb = plt.colorbar(C, orientation='horizontal', pad=0, aspect=50, extendrect=True)
 
-   # from skimage.feature import peak_local_max
-   # aux = press.values/100 - 1013
-   # XX = peak_local_max(aux, threshold_rel=.57)
-   # labels,X,Y = [],[],[]
-   # for p in XX:
-   #    i,j = p
-   #    print(lats[i,j], lons[i,j], 'H')
-   #    ax.text(lons[i,j], lats[i,j], 'H', transform=orto)   
+   auxx = press.values/100 - 1013
+   auxx = gaussian_filter(press.values, 3)/100 - 1013
+   aux = np.where(auxx>0, auxx, 0)
+   th = 30
+   for ii,p in enumerate( peak_local_max(aux, min_distance=th) ):
+      i,j = p
+      # print(ii,i,j,lats[i,j], lons[i,j], f'H{ii}')
+      if press.values[i,j]/100 > 1022: text = 'A'
+      else: text = 'a'
+      ax.text(lons[i,j], lats[i,j], text,
+              color='r', ha='center', va='center', weight='bold',
+              fontsize=30,
+              # bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0),
+              transform=orto, zorder=999)
+   th = 7
+   aux = np.where(auxx<0, -auxx, 0)
+   for ii,p in enumerate( peak_local_max(aux, min_distance=th) ):
+      i,j = p
+      if press.values[i,j]/100 < 980: text = 'B'
+      else: text = 'b'
+      # print(ii,i,j,lats[i,j], lons[i,j], f'L{ii}')
+      ax.text(lons[i,j], lats[i,j], text,
+              color='b', ha='center', va='center', weight='bold',
+              # bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0),
+              fontsize=30,
+              transform=orto, zorder=999)
 
    # plt.show()
    print(f"Saving: {fcstDate.strftime('%Y%m%d_%H%M')}.png")
@@ -195,6 +238,7 @@ def WTFF(inps):
 
 
 import generate_config as gen
+import download_gfs_data as download
 import gfs
 folder = '.'
 domain = 'Spain6_1'
@@ -216,33 +260,38 @@ left, right, bottom, top = lon0-1.3*x_, lon0+x_, lat0-y_, lat0+1.05*y_
 gen.main(folder, domain, start_date, end_date, timedelta=3,
          left=left, right=right,
          bottom=bottom, top=top, folder_out='~/Documents/storage')
+print('Starting Download')
+download.main()
+print('Finished Download')
 
 files = os.popen('ls dataGFS/gfs.*').read().strip().split()
 
 from multiprocessing import Pool
 
-inputs = []
-for f in files:
-   inputs.append((f,left,right,bottom,top))
-n = 5
-with Pool(n) as pool:
-   Res = pool.map(WTFF, inputs)
-pool.close()
-pool.join()
-del pool
-
-# for fname in files:
-#    told = time()
-#    print(fname)
-#    WTFF((fname, left,right,bottom,top))
-#    print(time()-told)
-#    exit()
+parallel = True
+if parallel:
+   inputs = []
+   for f in files:
+      inputs.append((f,left,right,bottom,top))
+   n = 5
+   with Pool(n) as pool:
+      Res = pool.map(WTFF, inputs)
+   pool.close()
+   pool.join()
+   del pool
+else:
+   for fname in files:
+      told = time()
+      print(fname)
+      WTFF((fname, left,right,bottom,top))
+      print(time()-told)
+      exit()
 
 com = 'rm *.mp4 *.webm'
 os.system(com)
 com = 'ls -1 20*.png > files.txt'
 os.system(com)
-com = 'mencoder -nosound -ovc lavc -lavcopts vcodec=mpeg4 -o fronto.mp4 -mf type=png:fps=2 mf://@files.txt > /dev/null 2> /dev/null'
+com = 'mencoder -nosound -ovc lavc -lavcopts vcodec=mpeg4 -o fronto.mp4 -mf type=png:fps=3 mf://@files.txt > /dev/null 2> /dev/null'
 os.system(com)
 com = 'rm files.txt'
 os.system(com)
