@@ -35,6 +35,8 @@ if not is_cron: log_help.screen_handler(LG, lv=lv)
 LG.info(f'Starting: {__file__}')
 ##############################################################################
 
+style = 'b'
+
 #### Colormaps ##################################################################
 # Frentes
 red = np.array([255,0,0,255])/255
@@ -45,14 +47,23 @@ cols += [(1-x)*white+x*red  for x in np.linspace(0,1,10)]
 cm_frentes = LinearSegmentedColormap.from_list(name='frentes',colors=cols)
 
 # Clouds
-col0 = np.array([1,1,1,0])
-col1 = np.array([.1,.1,.1,.7])
-cols = [(1-x)*col0+x*col1 for x in np.linspace(0,1,5)]
-cm_clouds = LinearSegmentedColormap.from_list(name='clouds',colors=cols)
+if style in ['a','c']:
+   col0 = np.array([1,1,1,0])
+   col1 = np.array([.1,.1,.1,.7])
+   cols = [(1-x)*col0+x*col1 for x in np.linspace(0,1,5)]
+   cm_clouds = LinearSegmentedColormap.from_list(name='clouds',colors=cols)
+elif style in ['b','d']:
+   col0 = np.array([1,1,1,0])
+   col1 = np.array([1,1,1,.9])
+   cols = [(1-x)*col0+x*col1 for x in np.linspace(0,1,5)]
+   cm_clouds = LinearSegmentedColormap.from_list(name='clouds',colors=cols)
+else:
+   print('style not defined')
+   exit()
 # Rain
 col0 = np.array([0,0,0,0])
 col1 = np.array([82,117,118,50])
-col2 = np.array([163,233,235,120])
+col2 = np.array([163,233,235,200])
 cols = [col0, col1, col2]
 cm_rain = ListedColormap( [C/255 for C in cols] )
 
@@ -81,6 +92,9 @@ def WTFF(inps):
    # U & V
    index = 0    # surface
    index = 36   # 850hPa
+   # index = 23   # 200hPa
+   # index = 24   # 250hPa
+   # index = 29   # 500hPa
    Us = grbs.select(name='U component of wind')
    U  = Us[index]
    Vs = grbs.select(name='V component of wind')
@@ -114,12 +128,12 @@ def WTFF(inps):
    temp = temp.values * units(temp['parameterUnits'])
    potential_temperature = mpcalc.potential_temperature(isopress, temp)
 
-   F = mpcalc.frontogenesis(potential_temperature,
-                            U.values * units(U['parameterUnits']),
-                            V.values * units(V['parameterUnits']),
-                            dx=dx, dy=dy)
-   convert_to_per_100km_3h = 1000*100*3600*3
-   fronto =  F.magnitude * convert_to_per_100km_3h
+   # F = mpcalc.frontogenesis(potential_temperature,
+   #                          U.values * units(U['parameterUnits']),
+   #                          V.values * units(V['parameterUnits']),
+   #                          dx=dx, dy=dy)
+   # convert_to_per_100km_3h = 1000*100*3600*3
+   # fronto =  F.magnitude * convert_to_per_100km_3h
 
    ref_lon = -3.7
    ref_lat = 40.4
@@ -127,7 +141,11 @@ def WTFF(inps):
    # left,right,bottom,top = -40, 30, 20, 70
 
    orto = ccrs.PlateCarree()
-   mercator = True
+   if style in ['a', 'b']: mercator = True
+   elif style in ['c', 'd']: mercator = False
+   else:
+      print('style not defined')
+      exit()
    if mercator:
       proj = ccrs.Mercator(ref_lon, bottom, top)
       fig = plt.figure(figsize=(14,9.15), frameon=False)
@@ -141,15 +159,18 @@ def WTFF(inps):
    ax.set_extent(extent, crs=orto)
 
    color = np.array([130,42,27])/255
-   # ax.stock_img()
+   # Baackgorund
+   if style in ['b', 'd']: ax.stock_img()
+   # Coast lines
    # ax.coastlines(resolution='50m', color='w', linewidth=2.3, zorder=100)
    ax.coastlines(resolution='50m', color=color, linewidth=1.7, zorder=101)
+   # MSLP
    C = ax.contour(lons, lats, press.values/100, levels=range(804,1204,4),
                                     colors='k', linewidths=.75,
-                                    transform=orto)
+                                    transform=orto, zorder=202)
    ax.clabel(C, inline=True, fontsize=10, fmt='%d')
    C = ax.contour(lons, lats, press.values/100, levels=range(804,1204,16),
-                                    colors='k', linewidths=1.75, zorder=102,
+                                    colors='k', linewidths=1.75, zorder=203,
                                     transform=orto)
    ax.clabel(C, inline=True, fontsize=10, fmt='%d')
    # print('Plotting frontogenesis')
@@ -157,15 +178,15 @@ def WTFF(inps):
    # print(np.nanmax(F))
 
    l = 1
-   print('Plotting fronts')
-   C = ax.contourf(lons[::l,::l],
-                   lats[::l,::l],
-                 fronto[::l,::l],
-                   # vmin=-8, vmax=8,
-                   np.arange(-6, 6.5, .5),
-                   cmap=cm_frentes,
-                   # cmap=plt.cm.bwr,
-                   extend='both', transform=orto)
+   # print('Plotting fronts')
+   # C = ax.contourf(lons[::l,::l],
+   #                 lats[::l,::l],
+   #               fronto[::l,::l],
+   #                 # vmin=-8, vmax=8,
+   #                 np.arange(-6, 6.5, .5),
+   #                 cmap=cm_frentes,
+   #                 # cmap=plt.cm.bwr,
+   #                 extend='both', transform=orto,zorder=200)
    print('Plotting clouds')
    ax.contourf(lons[::l,::l],
                lats[::l,::l],
@@ -183,7 +204,7 @@ def WTFF(inps):
    print('Plotting rain')
    rain = ax.contourf(lons_r[::l,::l],
                       lats_r[::l,::l],
-                    R.values[::l,::l], cmap=cm_rain,
+                    R.values[::l,::l], cmap=cm_rain, zorder=201,
                       transform=orto)
    # plt.colorbar(rain, orientation='horizontal', pad=0, aspect=50, extendrect=True)
    print('Ploted')
@@ -240,9 +261,10 @@ def WTFF(inps):
 import generate_config as gen
 import download_gfs_data as download
 import gfs
-folder = '.'
+folder = '/tmp'
 domain = 'Spain6_1'
 days = 14
+timedelta = 3
 UTCshift = dt.datetime.now() - dt.datetime.utcnow()
 UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
 start_date = gfs.get_GFS_calc(dt.datetime.now()) + UTCshift
@@ -257,14 +279,16 @@ lon0 = -9
 lat0 = 43
 left, right, bottom, top = lon0-1.3*x_, lon0+x_, lat0-y_, lat0+1.05*y_
 # left, right, bottom, top = -180, 180, 0, 90
-gen.main(folder, domain, start_date, end_date, timedelta=3,
+gen.main(folder, domain, start_date, end_date, timedelta=timedelta,
          left=left, right=right,
          bottom=bottom, top=top, folder_out='~/Documents/storage')
+
 print('Starting Download')
 download.main()
 print('Finished Download')
 
-files = os.popen('ls dataGFS/gfs.*').read().strip().split()
+files = os.popen(f'ls {folder}/dataGFS/gfs.*').read().strip().split()
+# files = [files[28]]
 
 from multiprocessing import Pool
 
@@ -287,6 +311,7 @@ else:
       print(time()-told)
       exit()
 
+
 com = 'rm *.mp4 *.webm'
 os.system(com)
 com = 'ls -1 20*.png > files.txt'
@@ -306,4 +331,6 @@ com = 'scp frontogenesis.webm olympus:CODES/web/RUNweb/assets/images/'
 os.system(com)
 
 com = 'rm 20*.png'
+os.system(com)
+com = f'rm {folder}/*'
 os.system(com)
