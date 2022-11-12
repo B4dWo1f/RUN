@@ -25,7 +25,7 @@ import logging
 import log_help
 log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
 # log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
-lv = logging.DEBUG
+lv = logging.INFO
 logging.basicConfig(level=lv,
                  format='%(asctime)s %(name)s:%(levelname)s-%(message)s',
                  datefmt='%Y/%m/%d-%H:%M',
@@ -36,6 +36,7 @@ LG.info(f'Starting: {__file__}')
 ##############################################################################
 
 style = 'b'
+LG.info(f'Style: {style}')
 
 #### Colormaps ##################################################################
 # Frentes
@@ -75,8 +76,9 @@ def WTFF(inps):
    left,right,bottom,top: [float] min,max longitude and min,max latitude of the
    data
    """
-   fname,left,right,bottom,top = inps
+   folder_plots,fname,left,right,bottom,top = inps
    extent = left, right, bottom, top
+   LG.info(f'Plotting file: {fname}')
 
    # Read GFS' grib2 file
    grbs = pygrib.open(fname)
@@ -95,6 +97,7 @@ def WTFF(inps):
    # index = 23   # 200hPa
    # index = 24   # 250hPa
    # index = 29   # 500hPa
+   LG.debug(f'Index: {index}')
    Us = grbs.select(name='U component of wind')
    U  = Us[index]
    Vs = grbs.select(name='V component of wind')
@@ -147,9 +150,11 @@ def WTFF(inps):
       print('style not defined')
       exit()
    if mercator:
+      LG.debug('Projection: Mercator')
       proj = ccrs.Mercator(ref_lon, bottom, top)
       fig = plt.figure(figsize=(14,9.15), frameon=False)
    else:
+      LG.debug('Projection: Orthographic')
       proj = ccrs.Orthographic(ref_lon, ref_lat)
       fig = plt.figure(figsize=(14,8.6), frameon=False)
    # ax = plt.axes(projection=projection)
@@ -160,11 +165,14 @@ def WTFF(inps):
 
    color = np.array([130,42,27])/255
    # Baackgorund
-   if style in ['b', 'd']: ax.stock_img()
+   if style in ['b', 'd']:
+      LG.debug('Using background image')
+      ax.stock_img()
    # Coast lines
    # ax.coastlines(resolution='50m', color='w', linewidth=2.3, zorder=100)
    ax.coastlines(resolution='50m', color=color, linewidth=1.7, zorder=101)
    # MSLP
+   LG.debug('Plotting MSLP')
    C = ax.contour(lons, lats, press.values/100, levels=range(804,1204,4),
                                     colors='k', linewidths=.75,
                                     transform=orto, zorder=202)
@@ -187,13 +195,13 @@ def WTFF(inps):
    #                 cmap=cm_frentes,
    #                 # cmap=plt.cm.bwr,
    #                 extend='both', transform=orto,zorder=200)
-   print('Plotting clouds')
+   LG.debug('Plotting Clouds')
    ax.contourf(lons[::l,::l],
                lats[::l,::l],
       clouds.values[::l,::l],
                cmap=cm_clouds,
                vmin=0, vmax=100, transform=orto)
-   print('Plotting wind')
+   LG.debug('Plotting Wind')
    n = 5
    f = 2
    ax.barbs(lons[::n,::n],lats[::n,::n],
@@ -201,13 +209,12 @@ def WTFF(inps):
             color='k', length=4, #pivot='middle',
             sizes=dict(emptybarb=0.25/f, spacing=0.5/f, height=0.9/f),
             linewidth=0.75, transform=orto)
-   print('Plotting rain')
+   LG.debug('Plotting Rain')
    rain = ax.contourf(lons_r[::l,::l],
                       lats_r[::l,::l],
                     R.values[::l,::l], cmap=cm_rain, zorder=201,
                       transform=orto)
    # plt.colorbar(rain, orientation='horizontal', pad=0, aspect=50, extendrect=True)
-   print('Ploted')
    ax.text(0.5, .99, f"{(fcstDate+UTCshift).strftime('%a %d %b')}",
            transform = ax.transAxes, va='top', ha='center', fontsize=30,
            bbox=dict(facecolor=(1,1,1,.8), ec='k', pad=10), zorder=1000)
@@ -225,6 +232,7 @@ def WTFF(inps):
    #         backgroundcolor=(1,1,1,.5), edgecolor='k')
 # cb = plt.colorbar(C, orientation='horizontal', pad=0, aspect=50, extendrect=True)
 
+   LG.debug('Centering A/B labels')
    auxx = press.values/100 - 1013
    auxx = gaussian_filter(press.values, 3)/100 - 1013
    aux = np.where(auxx>0, auxx, 0)
@@ -253,8 +261,9 @@ def WTFF(inps):
               transform=orto, zorder=999)
 
    # plt.show()
-   print(f"Saving: {fcstDate.strftime('%Y%m%d_%H%M')}.png")
-   fig.savefig(f"{fcstDate.strftime('%Y%m%d_%H%M')}.png")
+   fsave = f"{folder_plots}/{fcstDate.strftime('%Y%m%d_%H%M')}.png"
+   LG.info(f"Saving: {fsave}")
+   fig.savefig(fsave)
    plt.close('all')
 
 
@@ -262,11 +271,18 @@ import generate_config as gen
 import download_gfs_data as download
 import gfs
 folder = '/tmp'
+folder_plots = f'{folder}/plots'
+folder_gfs = f'{folder}/dataGFS'
+LG.info(f'Plots folder: {folder_plots}')
+LG.info(f'dataGFS folder: {folder_gfs}')
+for f in [folder_plots, folder_gfs]:
+   os.system(f'mkdir -p {f}')
 domain = 'Spain6_1'
 days = 14
 timedelta = 3
 UTCshift = dt.datetime.now() - dt.datetime.utcnow()
 UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
+LG.debug(f'UTCshift: {UTCshift}')
 start_date = gfs.get_GFS_calc(dt.datetime.now()) + UTCshift
 end_date   = start_date + dt.timedelta(days=days)
 # left = -75
@@ -283,21 +299,24 @@ gen.main(folder, domain, start_date, end_date, timedelta=timedelta,
          left=left, right=right,
          bottom=bottom, top=top, folder_out='~/Documents/storage')
 
-print('Starting Download')
+LG.info('Starting Download')
 download.main()
-print('Finished Download')
+LG.info('Finished Download')
 
 files = os.popen(f'ls {folder}/dataGFS/gfs.*').read().strip().split()
 # files = [files[28]]
+LG.info(f'{len(files)} files to plot')
 
 from multiprocessing import Pool
 
 parallel = True
 if parallel:
+   LG.info('Parallel plotting')
    inputs = []
    for f in files:
-      inputs.append((f,left,right,bottom,top))
+      inputs.append((folder_plots,f,left,right,bottom,top))
    n = 5
+   LG.info(f'Starting a pool with {n} cores')
    with Pool(n) as pool:
       Res = pool.map(WTFF, inputs)
    pool.close()
@@ -312,9 +331,10 @@ else:
       exit()
 
 
+LG.info('Starting terminal commands')
 com = 'rm *.mp4 *.webm'
 os.system(com)
-com = 'ls -1 20*.png > files.txt'
+com = f'ls -1 {folder_plots}/20*.png > files.txt'
 os.system(com)
 com = 'mencoder -nosound -ovc lavc -lavcopts vcodec=mpeg4 -o fronto.mp4 -mf type=png:fps=3 mf://@files.txt > /dev/null 2> /dev/null'
 os.system(com)
@@ -332,5 +352,7 @@ os.system(com)
 
 com = 'rm 20*.png'
 os.system(com)
-com = f'rm {folder}/*'
+com = f'rm {folder_gfs}/*'
 os.system(com)
+
+LG.info('Done!')
