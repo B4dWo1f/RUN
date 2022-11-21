@@ -4,6 +4,10 @@
 import os
 is_cron = False
 is_cron = bool( os.getenv('RUN_BY_CRON') )
+if is_cron:
+    import matplotlib as mpl
+    mpl.use('Agg')
+here = os.path.dirname(os.path.realpath(__file__))
 from time import time
 import datetime as dt
 import numpy as np
@@ -24,6 +28,7 @@ except: pass
 import logging
 import log_help
 log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+log_file = f'{here}/{log_file}'
 # log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
 lv = logging.INFO
 logging.basicConfig(level=lv,
@@ -273,6 +278,7 @@ import gfs
 folder = '/tmp'
 folder_plots = f'{folder}/plots'
 folder_gfs = f'{folder}/dataGFS'
+folder_out = f'/storage/PLOTS/Spain6_1'
 LG.info(f'Plots folder: {folder_plots}')
 LG.info(f'dataGFS folder: {folder_gfs}')
 for f in [folder_plots, folder_gfs]:
@@ -332,27 +338,41 @@ else:
 
 
 LG.info('Starting terminal commands')
-com = 'rm *.mp4 *.webm'
+com = f'rm {folder_out}/*.mp4 {folder_out}/*.webm'
 os.system(com)
 com = f'ls -1 {folder_plots}/20*.png > files.txt'
 os.system(com)
-com = 'mencoder -nosound -ovc lavc -lavcopts vcodec=mpeg4 -o fronto.mp4 -mf type=png:fps=3 mf://@files.txt > /dev/null 2> /dev/null'
+tmp_name = f'{here}/fronto.mp4'
+com = f'rm {tmp_name}'
+os.system(com)
+#
+LG.info('making timelapse')
+com = f'mencoder -nosound -ovc lavc -lavcopts vcodec=mpeg4 -o {tmp_name} -mf type=png:fps=3 mf://@files.txt > /dev/null 2> /dev/null'
 os.system(com)
 com = 'rm files.txt'
+#
+LG.info('convert to webm')
 os.system(com)
-com = 'ffmpeg -i fronto.mp4 frontogenesis.webm'
+com = f'ffmpeg -i {tmp_name} {folder_plots}/frontogenesis.webm'
+LG.info('convert to mac format')
 os.system(com)
-com = 'ffmpeg -i fronto.mp4 -an -vcodec libx264 -crf 23 frontogenesis.mp4'
+com = f'ffmpeg -i {tmp_name} -an -vcodec libx264 -crf 23 {folder_plots}/frontogenesis.mp4'
 os.system(com)
+LG.info(f'move to folder')
+LG.info(f'move to folder {folder_plots}')
+com = f'mv {folder_plots}/*.mp4 {folder_plots}/*.webm {folder_out}/'
+os.system(com)
+# com = 'scp frontogenesis.mp4 olympus:CODES/web/RUNweb/assets/images/'
+# os.system(com)
+# com = 'scp frontogenesis.webm olympus:CODES/web/RUNweb/assets/images/'
+# os.system(com)
 
-com = 'scp frontogenesis.mp4 olympus:CODES/web/RUNweb/assets/images/'
-os.system(com)
-com = 'scp frontogenesis.webm olympus:CODES/web/RUNweb/assets/images/'
-os.system(com)
-
-com = 'rm 20*.png'
+LG.info('delete/clean stuff')
+com = f'rm {folder_plots}/20*.png'
 os.system(com)
 com = f'rm {folder_gfs}/*'
+os.system(com)
+com = f'rm {tmp_name}'
 os.system(com)
 
 LG.info('Done!')
