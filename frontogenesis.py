@@ -173,25 +173,7 @@ def WTFF(inps):
    if style in ['b', 'd']:
       LG.debug('Using background image')
       ax.stock_img()
-   # Coast lines
-   # ax.coastlines(resolution='50m', color='w', linewidth=2.3, zorder=100)
-   ax.coastlines(resolution='50m', color=color, linewidth=1.7, zorder=101)
-   # MSLP
-   LG.debug('Plotting MSLP')
-   C = ax.contour(lons, lats, press.values/100, levels=range(804,1204,4),
-                                    colors='k', linewidths=.75,
-                                    transform=orto, zorder=202)
-   ax.clabel(C, inline=True, fontsize=10, fmt='%d')
-   C = ax.contour(lons, lats, press.values/100, levels=range(804,1204,16),
-                                    colors='k', linewidths=1.75, zorder=203,
-                                    transform=orto)
-   ax.clabel(C, inline=True, fontsize=10, fmt='%d')
-   # print('Plotting frontogenesis')
-   # print(np.nanmin(F))
-   # print(np.nanmax(F))
-
    l = 1
-   # print('Plotting fronts')
    # C = ax.contourf(lons[::l,::l],
    #                 lats[::l,::l],
    #               fronto[::l,::l],
@@ -200,72 +182,100 @@ def WTFF(inps):
    #                 cmap=cm_frentes,
    #                 # cmap=plt.cm.bwr,
    #                 extend='both', transform=orto,zorder=200)
-   LG.debug('Plotting Clouds')
-   ax.contourf(lons[::l,::l],
-               lats[::l,::l],
-      clouds.values[::l,::l],
-               cmap=cm_clouds,
-               vmin=0, vmax=100, transform=orto)
-   LG.debug('Plotting Wind')
-   n = 5
-   f = 2
-   ax.barbs(lons[::n,::n],lats[::n,::n],
-            U.values[::n,::n], V.values[::n,::n],
-            color='k', length=4, #pivot='middle',
-            sizes=dict(emptybarb=0.25/f, spacing=0.5/f, height=0.9/f),
-            linewidth=0.75, transform=orto)
-   LG.debug('Plotting Rain')
-   rain = ax.contourf(lons_r[::l,::l],
-                      lats_r[::l,::l],
-                    R.values[::l,::l], cmap=cm_rain, zorder=201,
-                      transform=orto)
-   # plt.colorbar(rain, orientation='horizontal', pad=0, aspect=50, extendrect=True)
-   ax.text(0.5, .99, f"{(fcstDate+UTCshift).strftime('%a %d %b')}",
-           transform = ax.transAxes, va='top', ha='center', fontsize=30,
-           bbox=dict(facecolor=(1,1,1,.8), ec='k', pad=10), zorder=1000)
-   msg  = [f"valid: {(fcstDate+UTCshift).strftime('%Y-%m-%d %H:%M')}"]
-   msg += [f"GFS: {(dataDate).strftime('%Y-%m-%d %H:%M')}"]
-   msg += [f"plot: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}"]
-   ax.text(0, .008, f'{isopress:~}',
-           transform = ax.transAxes,
-           bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0), zorder=1000)
-   ax.text(1, .008, '\n'.join(msg),
-           transform = ax.transAxes, ha='right',
-           bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0), zorder=1000)
-           # backgroundcolor=(1,1,1,.5), edgecolor='k')
-   # ax.text(.008,.008,fcstDate+UTCshift,transform = ax.transAxes,
-   #         backgroundcolor=(1,1,1,.5), edgecolor='k')
-# cb = plt.colorbar(C, orientation='horizontal', pad=0, aspect=50, extendrect=True)
+   def plot_clouds():
+       LG.debug('Plotting Clouds')
+       ax.contourf(lons[::l,::l],
+                   lats[::l,::l],
+          clouds.values[::l,::l],
+                   cmap=cm_clouds,
+                   vmin=0, vmax=100, transform=orto) #, zorder=10)
+   def plot_wind():
+       LG.debug('Plotting Wind')
+       n = 5
+       f = 2
+       ax.barbs(lons[::n,::n],lats[::n,::n],
+                U.values[::n,::n], V.values[::n,::n],
+                color='k', length=4, #pivot='middle',
+                sizes=dict(emptybarb=0.25/f, spacing=0.5/f, height=0.9/f),
+                linewidth=0.75, transform=orto) #, zorder=11)
+   def plot_rain():
+       LG.debug('Plotting Rain')
+       rain = ax.contourf(lons_r[::l,::l],
+                          lats_r[::l,::l],
+                        R.values[::l,::l], cmap=cm_rain, #zorder=12,
+                          transform=orto)
+   def plot_ab():
+      LG.debug('Centering A/B labels')
+      auxx = press.values/100 - 1013
+      auxx = gaussian_filter(press.values, 3)/100 - 1013
+      aux = np.where(auxx>0, auxx, 0)
+      th = 30
+      for ii,p in enumerate( peak_local_max(aux, min_distance=th) ):
+         i,j = p
+         # print(ii,i,j,lats[i,j], lons[i,j], f'H{ii}')
+         if press.values[i,j]/100 > 1022: text = 'A'
+         else: text = 'a'
+         ax.text(lons[i,j], lats[i,j], text,
+                 color='r', ha='center', va='center', weight='bold',
+                 fontsize=30,
+                 # bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0),
+                 transform=orto, zorder=31)
+      th = 7
+      aux = np.where(auxx<0, -auxx, 0)
+      for ii,p in enumerate( peak_local_max(aux, min_distance=th) ):
+         i,j = p
+         if press.values[i,j]/100 < 980: text = 'B'
+         else: text = 'b'
+         # print(ii,i,j,lats[i,j], lons[i,j], f'L{ii}')
+         ax.text(lons[i,j], lats[i,j], text,
+                 color='b', ha='center', va='center', weight='bold',
+                 # bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0),
+                 fontsize=30,
+                 transform=orto, zorder=31)
 
-   LG.debug('Centering A/B labels')
-   auxx = press.values/100 - 1013
-   auxx = gaussian_filter(press.values, 3)/100 - 1013
-   aux = np.where(auxx>0, auxx, 0)
-   th = 30
-   for ii,p in enumerate( peak_local_max(aux, min_distance=th) ):
-      i,j = p
-      # print(ii,i,j,lats[i,j], lons[i,j], f'H{ii}')
-      if press.values[i,j]/100 > 1022: text = 'A'
-      else: text = 'a'
-      ax.text(lons[i,j], lats[i,j], text,
-              color='r', ha='center', va='center', weight='bold',
-              fontsize=30,
-              # bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0),
-              transform=orto, zorder=999)
-   th = 7
-   aux = np.where(auxx<0, -auxx, 0)
-   for ii,p in enumerate( peak_local_max(aux, min_distance=th) ):
-      i,j = p
-      if press.values[i,j]/100 < 980: text = 'B'
-      else: text = 'b'
-      # print(ii,i,j,lats[i,j], lons[i,j], f'L{ii}')
-      ax.text(lons[i,j], lats[i,j], text,
-              color='b', ha='center', va='center', weight='bold',
-              # bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0),
-              fontsize=30,
-              transform=orto, zorder=999)
+   # MSLP
+   def plot_mslp():
+       LG.debug('Plotting MSLP')
+       C4 = ax.contour(lons, lats, press.values/100, levels=range(804,1204,4),
+                                        colors='k', linewidths=.75,
+                                        transform=orto) #, zorder=20)
+       C16 = ax.contour(lons, lats, press.values/100, levels=range(804,1204,16),
+                                        colors='k', linewidths=1.75, #zorder=21,
+                                        transform=orto)
+       ax.clabel(C4, inline=True, fontsize=10, fmt='%d')
+       ax.clabel(C16, inline=True, fontsize=10, fmt='%d')
+   # Coast lines
+   def plot_coastlines():
+       # ax.coastlines(resolution='50m', color='w', linewidth=2.3, zorder=100)
+       ax.coastlines(resolution='50m', color=color, linewidth=1.7) #, zorder=30)
 
-   # plt.show()
+   # Text boxes
+   def plot_texts():
+       ax.text(0.5, .99, f"{(fcstDate+UTCshift).strftime('%a %d %b')}",
+               transform = ax.transAxes, va='top', ha='center', fontsize=30,
+               bbox=dict(facecolor=(1,1,1,.8), ec='k', pad=10), zorder=1000)
+       ax.text(0, .008, f'{isopress:~}', fontsize=20,
+               transform = ax.transAxes,
+               bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0), zorder=1000)
+       msg  = [f"valid: {(fcstDate+UTCshift).strftime('%Y-%m-%d %H:%M')}"]
+       msg += [f"GFS: {(dataDate).strftime('%Y-%m-%d %H:%M')}"]
+       msg += [f"plot: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}"]
+       ax.text(1, .008, '\n'.join(msg),
+               transform = ax.transAxes, ha='right', fontsize=13,
+               bbox=dict(facecolor=(1,1,1,.9), ec='k', pad=5.0), zorder=1000)
+
+   # XXX
+   # I do it this way because there is some bug in clabels where they don't
+   # accpet or respect zorder, so this is the only way I found to organize the
+   # layers
+   plot_clouds()
+   plot_wind()
+   plot_rain()
+   plot_mslp()
+   plot_coastlines()
+   plot_ab()
+   plot_texts()
+
    fsave = f"{folder_plots}/{fcstDate.strftime('%Y%m%d_%H%M')}.png"
    LG.info(f"Saving: {fsave}")
    fig.savefig(fsave)
