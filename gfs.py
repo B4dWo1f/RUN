@@ -25,15 +25,12 @@ def get_GFS_calc(date, shift = 3+35/60, date_req=None):
    provided date.
    date: [datetime.datetime] target date
    shift: [float] hours since batch name. ej: data from batch 06 is not usually
-          available before 9:40
-   date_req: [datetime.datetime] date when the request is made. If None, use now
-   Returns:
-   dateGFS: [datetime.datetime]
+          available before 9:40 so a shift of ~3.5 hours is advised
+   date_req: [datetime.datetime] date when the request is made. If None, use now.
+             this parameter is useful to reconstruct past predictions.
+   Returns
+   dateGFS: [datetime.datetime] GFS batch
    """
-   # hours = [0,6,12,18,date.hour]
-   # inds = list(np.argsort(hours))
-   # ind = inds.index(4)-1
-   # dateGFS = date.replace( hour=hours[ind], minute=0, second=0,microsecond=0)
    if date_req == None: date_req = dt.datetime.utcnow()
    # GFS batch according to data
    GFS = list(range(0,24,6))
@@ -79,7 +76,7 @@ def checker(folder,files,mode='ftp'):
    else:
       missing_files = set(files) - (set(files) & set(server_files))
       LG.warning(f'Missing {len(missing_files)} files:')
-      for f in missing_files:
+      for f in sorted(missing_files):
           LG.warning(f)
       return False
 
@@ -95,7 +92,7 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
    toplat = Params.toplat
    bottomlat = Params.bottomlat
    base_url = 'https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?'
-### Ensure all data from same GFS run XXX check!
+   ### Ensure all data from same GFS run XXX check!
    now = dt.datetime.utcnow()
    LG.info(f"earliest data: {min(dates).strftime('%Y/%m/%d/%H:00')}")
    batch = min([min(dates), now])
@@ -117,7 +114,7 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
          for date in dates:
             folder,fname = ncep_folder_fname(batch,date)
             files.append(fname)
-         LG.info(f'Files: {files[0]} - {files[-1]}')
+         LG.info(f'({len(files)}) Files: {files[0]} - {files[-1]}')
          is_data_present = checker(folder,files)
          if not is_data_present:
              LG.info('Waiting 60 seconds')
@@ -138,9 +135,11 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
    LG.info(f"Starting download of GFS data")
    # with open(f'{here}/plots/batch.txt','w') as f_batch:
    #     f_batch.write(batch.strftime(fmt))
-   LG.info(f'saved: {Params.output_folder}/batch.txt')
-   with open(f'{Params.output_folder}/batch.txt','w') as f_batch:
+   batch_file = f'{Params.output_folder}/batch.txt'
+   LG.debug(f'saving: {batch_file}')
+   with open(batch_file,'w') as f_batch:
        f_batch.write(batch.strftime(fmt))
+   LG.info(f'saved: {batch_file}')
    # Prepare all inputs for parallel download
    urls,files = [],[]
    for date in dates:
