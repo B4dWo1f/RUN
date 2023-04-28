@@ -96,6 +96,7 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
    now = dt.datetime.utcnow()
    LG.info(f"earliest data: {min(dates).strftime('%Y/%m/%d/%H:00')}")
    batch = min([min(dates), now])
+   LG.info(f"Getting tentative GFS batch for {batch.strftime('%Y%m%d/%H')}")
    batch = get_GFS_calc(batch)
    LG.info(f"Tentative GFS batch: {batch.strftime('%Y%m%d/%H')}")
    delta = dt.timedelta(hours=6)
