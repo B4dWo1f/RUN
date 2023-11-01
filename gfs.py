@@ -63,7 +63,7 @@ def checker(folder,files,mode='ftp'):
       try:
          server_files = change_directory(ftp_connection, folder)
       except myFTPError:
-         LG.warning('Folder does not exist')
+         LG.warning(f'Folder {folder} does not exist')
          return False
    elif mode == 'http':
       LG.critical('SUUUPER buggy. Use mode=ftp')
