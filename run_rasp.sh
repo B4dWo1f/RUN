@@ -78,6 +78,7 @@ if [ $? -eq 0 ]; then
    ls "${GFSdata}"
 else
    1>&2 echo "Error downloading GFS data"
+   $HOME/bin/mybot/sysbot.py "Error downloading GFS data"
    exit 1
 fi
 )
@@ -103,6 +104,7 @@ if [ $? -eq 0 ]; then
    ./link_grib.csh ../dataGFS/
 else
    1>&2 echo "Error running Geogrid"
+   $HOME/bin/mybot/sysbot.py "Error running Geogrid"
    exit 1
 fi
 
@@ -171,7 +173,9 @@ rm wrfoutReady*
 # Check WRF
 if [ $? -eq 0 ]; then
    echo "SUCCESS: WRF run Ok."
+   #$HOME/bin/mybot/sysbot.py "SUCCESS: WRF run Ok."
 else
    echo "FAIL: Error during WRF steps"
+   $HOME/bin/mybot/sysbot.py "FAIL: Error during WRF steps"
    exit 1
 fi

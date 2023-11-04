@@ -16,7 +16,7 @@ fmt = '%d/%m/%Y-%H:%M'
 
 
 class RunParams(object):
-   def __init__(self, start_date, end_date, daily_hours, domains,
+   def __init__(self, start_date, end_date, GFS_timedelta, domains,
                       domain_folder, GFS_data_folder,
                       output_folder, plots_folder,
                       leftlon, rightlon, toplat, bottomlat, Ncores,wait4batch):
@@ -31,13 +31,14 @@ class RunParams(object):
       msg = f'User wants: {self.start_date.strftime(fmt)} - '
       msg += f'{self.end_date.strftime(fmt)}'
       LG.info(msg)
-      aux = []
-      for h in daily_hours:
-         aux.append(dt.datetime.combine(dt.date(1,1,1),h) - UTCshift)
-      self.daily_hours = [h.time()  for h in aux]
-      LG.info(f'Daily hour mask: {[x.hour for x in self.daily_hours]}')
+      # aux = []
+      # for h in daily_hours:
+      #    aux.append(dt.datetime.combine(dt.date(2007,10,12),h) - UTCshift)
+      # self.daily_hours = [h.time()  for h in aux]
+      # LG.info(f'Daily hour mask: {[x.hour for x in self.daily_hours]}')
       self.domains = domains
       self.domain_folder = domain_folder
+      self.GFS_timedelta = GFS_timedelta
       self.GFS_data_folder = GFS_data_folder
       com = f'mkdir -p {self.GFS_data_folder}'
       LG.info(f'creating folder {self.GFS_data_folder}')
@@ -58,10 +59,11 @@ class RunParams(object):
       self.wait4batch = wait4batch
    def __str__(self):
       msg = f'Forecast for: {self.start_date} - {self.end_date}\n'
-      msg += 'Hours mask: '
-      hs = [h.strftime('%H:%M') for h in self.daily_hours]
-      msg += ' - '.join(hs) + '\n'
+      # msg += 'Hours mask: '
+      # hs = [h.strftime('%H:%M') for h in self.daily_hours]
+      # msg += ' - '.join(hs) + '\n'
       msg += f'GFS data: {self.GFS_data_folder}\n'
+      msg += f'GFS timedelta: {self.GFS_timedelta}\n'
       msg += f'domain: {self.domain_folder}\n'
       msg += f'regions: {self.domains}\n'
       msg += f'Longitudes: {self.leftlon} - {self.rightlon}\n'
@@ -132,17 +134,18 @@ def load(fname='config.ini'):
       end_date = start_date + dt.timedelta(days=days_run)
       LG.info(f'Run for: {start_date} - {end_date}')
 
-   try:
-      hours_mask = config['run']['daily_hours'].split(',')    #XXX TODO
-      hours_mask = [dt.time(*tuple(map(int,t.split(':')))) for t in hours_mask]
-   except KeyError:
-      LG.warning('Hours mask (daily_hours) not provided! Using 0-24')
-      hours_mask = [dt.time(0),dt.time(23)]
+   # try:
+   #    hours_mask = config['run']['daily_hours'].split(',')    #XXX TODO
+   #    hours_mask = [dt.time(*tuple(map(int,t.split(':')))) for t in hours_mask]
+   # except KeyError:
+   #    LG.warning('Hours mask (daily_hours) not provided! Using 0-24')
+   #    hours_mask = [dt.time(0),dt.time(23)]
 
    # Domain
    domains_run = tuple(map(int,config['run']['domains'].split(',')))
    domain_folder = expanduser(config['run']['domain_folder'])
    GFS_data_folder = expanduser(config['run']['GFS_data_folder'])
+   GFS_timedelta = int(config['run']['GFS_timedelta'])
    output_folder = expanduser(config['run']['output_folder'])
    plots_folder = expanduser(config['run']['plots_folder'])
    leftlon   = float(config['run']['leftlon'])
@@ -154,7 +157,7 @@ def load(fname='config.ini'):
    Ncores = int(config['run']['Ncores'])
    wait4batch = float(config['run']['wait4batch'])
 
-   R = RunParams(start_date, end_date, hours_mask, domains_run,
+   R = RunParams(start_date, end_date, GFS_timedelta, domains_run,
                  domain_folder, GFS_data_folder,output_folder,plots_folder,
                  leftlon, rightlon, toplat, bottomlat, Ncores, wait4batch)
 
