@@ -116,7 +116,8 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
             folder,fname = ncep_folder_fname(batch,date)
             files.append(fname)
          LG.info(f'({len(files)}) Files: {files[0]} - {files[-1]}')
-         is_data_present = checker(folder,files)
+         # is_data_present = checker(folder,files)
+         is_data_present = True
          if not is_data_present:
              LG.info('Waiting 60 seconds')
              sleep(60)
@@ -193,6 +194,14 @@ def URL_subregion(batch,date,leftlon,rightlon,toplat,bottomlat):
    """
    folder, fname = ncep_folder_fname(batch,date)
    url = 'https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?'
+   LG.debug(f'file={fname}')
+   LG.debug(f'&all_lev=on&all_var=on')
+   LG.debug(f'&subregion=')
+   LG.debug(f'&leftlon={leftlon}')
+   LG.debug(f'&rightlon={rightlon}')
+   LG.debug(f'&toplat={toplat}')
+   LG.debug(f'&bottomlat={bottomlat}')
+   LG.debug(f'&dir=/{folder}/atmos')
    url += f'file={fname}'
    url += f'&all_lev=on&all_var=on'
    url += f'&subregion='
@@ -201,6 +210,7 @@ def URL_subregion(batch,date,leftlon,rightlon,toplat,bottomlat):
    url += f'&toplat={toplat}'
    url += f'&bottomlat={bottomlat}'
    url += f'&dir=/{folder}/atmos'
+   LG.info(f'URL subregion: {url}')
    return url, fname
 ########################
 

@@ -87,6 +87,7 @@ def WTFF(inps):
 
    # Read GFS' grib2 file
    grbs = pygrib.open(fname)
+   LG.debug(f'File read')
 
    # Get dates
    t,T = str(grbs.message(1)).split(':')[-2:]
@@ -95,6 +96,7 @@ def WTFF(inps):
    t = int(t.split()[-2])
    t = dt.timedelta(hours=t)
    fcstDate = dataDate + t 
+   LG.debug(f'Forecast date: {fcstDate}')
 
    # U & V
    index = 0    # surface
@@ -299,7 +301,11 @@ timedelta = 3
 UTCshift = dt.datetime.now() - dt.datetime.utcnow()
 UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
 LG.debug(f'UTCshift: {UTCshift}')
-start_date = gfs.get_GFS_calc(dt.datetime.now()) + UTCshift
+now = dt.datetime.now()
+LG.info(f'Real date: {now}')
+now = now - dt.timedelta(hours = 2) # XXX
+LG.info(f'Fake date: {now}')
+start_date = gfs.get_GFS_calc(now) + UTCshift
 end_date   = start_date + dt.timedelta(days=days)
 # left = -75
 # right = 45
