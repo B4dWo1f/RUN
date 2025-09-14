@@ -111,4 +111,4 @@ if __name__ == '__main__':
    timedelta = 1   # hourly data
    main(folder, domain, start_date, end_date, timedelta, lglv='debug',
         left=-17, right=8, bottom=30, top=48,
-        Ncores=14, wait4batch=40)
+        Ncores=13, wait4batch=40)
