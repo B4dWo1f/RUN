@@ -1,5 +1,5 @@
 # RUN
-RASP by Uri & Noel
+WRF implementation a-la-RASP by Uri & Noel
 
 ## To-Do
 ### Post-Processing
