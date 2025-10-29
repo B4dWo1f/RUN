@@ -157,7 +157,7 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
    LG.debug(f'Starting download with {npool} requests in parallel')
    pool = Pool(npool)
    remaining = all_inps
-   Ntries = 5
+   Ntries = 3
    cont = 0
    # Download until all files are downloaded
    while len(remaining) > 0 and cont < Ntries:
@@ -168,7 +168,7 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
       else: break
       #TODO add sleep here
       cont += 1
-   LG.info('All GFS data downloaded')
+   LG.info(f'All GFS data downloaded in {cont} iterations')
    return True
 
 
