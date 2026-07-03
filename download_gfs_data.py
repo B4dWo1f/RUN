@@ -33,6 +33,7 @@ def main(fini = 'config.ini'):
                                        wait4batch=R.wait4batch)
          if got_all_files: cont = 2*max_tries  # XXX dumb ways to exit...
       except:
+         LG.info(f'Attempt {cont}. Not all files')
          cont += 1
 
 if __name__ == '__main__':

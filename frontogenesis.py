@@ -138,12 +138,12 @@ def WTFF(inps):
    temp = temp.values * units(temp['parameterUnits'])
    potential_temperature = mpcalc.potential_temperature(isopress, temp)
 
-   # F = mpcalc.frontogenesis(potential_temperature,
-   #                          U.values * units(U['parameterUnits']),
-   #                          V.values * units(V['parameterUnits']),
-   #                          dx=dx, dy=dy)
-   # convert_to_per_100km_3h = 1000*100*3600*3
-   # fronto =  F.magnitude * convert_to_per_100km_3h
+   F = mpcalc.frontogenesis(potential_temperature,
+                            U.values * units(U['parameterUnits']),
+                            V.values * units(V['parameterUnits']),
+                            dx=dx, dy=dy)
+   convert_to_per_100km_3h = 1000*100*3600*3
+   fronto =  F.magnitude * convert_to_per_100km_3h
 
    ref_lon = -3.7
    ref_lat = 40.4
@@ -176,14 +176,15 @@ def WTFF(inps):
       LG.debug('Using background image')
       ax.stock_img()
    l = 1
-   # C = ax.contourf(lons[::l,::l],
-   #                 lats[::l,::l],
-   #               fronto[::l,::l],
-   #                 # vmin=-8, vmax=8,
-   #                 np.arange(-6, 6.5, .5),
-   #                 cmap=cm_frentes,
-   #                 # cmap=plt.cm.bwr,
-   #                 extend='both', transform=orto,zorder=200)
+   def plot_fronto_func():
+       C = ax.contourf(lons[::l,::l],
+                       lats[::l,::l],
+                     fronto[::l,::l],
+                       # vmin=-8, vmax=8,
+                       np.arange(-6, 6.5, .5),
+                       cmap=cm_frentes,
+                       # cmap=plt.cm.bwr,
+                       extend='both', transform=orto,zorder=200)
    def plot_clouds():
        LG.debug('Plotting Clouds')
        ax.contourf(lons[::l,::l],
@@ -273,6 +274,7 @@ def WTFF(inps):
    plot_clouds()
    plot_wind()
    plot_rain()
+   # plot_fronto_func() # XXX
    plot_mslp()
    plot_coastlines()
    plot_ab()
@@ -337,7 +339,7 @@ if parallel:
    inputs = []
    for f in files:
       inputs.append((folder_plots,f,left,right,bottom,top))
-   n = 5
+   n = 10
    LG.info(f'Starting a pool with {n} cores')
    with Pool(n) as pool:
       Res = pool.map(WTFF, inputs)

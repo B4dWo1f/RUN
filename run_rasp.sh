@@ -132,6 +132,7 @@ if [ $? -eq 0 ]; then
    echo "SUCCESS: WPS run Ok."
 else
    echo "FAIL: Error during WPS steps"
+   $HOME/bin/mybot/sysbot.py "FAIL: Error during WPS steps"
    exit 1
 fi
 
