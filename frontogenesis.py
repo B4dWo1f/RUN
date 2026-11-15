@@ -2,14 +2,49 @@
 # -*- coding: UTF-8 -*-
 
 import os
+here = os.path.dirname(os.path.realpath(__file__))
+import sys
+import datetime as dt
+def find_next_datetime(dates,target):
+   left, right = 0, len(dates) - 1
+   result = None
+   while left <= right:
+      mid = (left + right) // 2
+      if dates[mid] >= target:
+         result = dates[mid]
+         right = mid - 1                                                    
+      else:             
+         left = mid + 1
+   return result
+
+def get_next_gfs_batch(now):
+   UTCshift = dt.datetime.now() - dt.datetime.utcnow()
+   UTCshift = dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
+   start = now.replace(hour=0,minute=0,second=0,microsecond=0) # utc
+   stops = [start+dt.timedelta(hours=i*6) for i in range(4)]   #
+   stops = [x+UTCshift + dt.timedelta(hours=3.7) for x in stops]
+   return find_next_datetime(stops, now)
+
+now = dt.datetime.now()
+now = now - dt.timedelta(minutes=5) # in case previous WRF had not finished
+                                    # and was killed by next RUN launch
+time_till_next_GFS = (get_next_gfs_batch(now)-now).total_seconds()/60
+time_till_next_GFS = int(time_till_next_GFS)
+
+# Read threshold
+with open(f'{here}/fronto.threshold', 'r') as f:
+    threshold = float(f.read().strip())
+
+if time_till_next_GFS < 35:
+    sys.exit(f'Not enough time for execution ({time_till_next_GFS}<{threshold}min till next GFS). Skipping')
+
+
 is_cron = False
 is_cron = bool( os.getenv('RUN_BY_CRON') )
 if is_cron:
     import matplotlib as mpl
     mpl.use('Agg')
-here = os.path.dirname(os.path.realpath(__file__))
 from time import time
-import datetime as dt
 import numpy as np
 from netCDF4 import Dataset
 from metpy.units import units
@@ -38,6 +73,7 @@ logging.basicConfig(level=lv,
 LG = logging.getLogger('main')
 if not is_cron: log_help.screen_handler(LG, lv=lv)
 LG.info(f'Starting: {__file__}')
+LG.info(f'{time_till_next_GFS} min until next GFS')
 ##############################################################################
 
 style = 'b'

@@ -6,15 +6,17 @@ here = os.path.dirname(os.path.realpath(__file__))
 import datetime as dt
 import numpy as np
 from ftplib import FTP
-from multiprocessing import Pool
+# from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 import requests
 from bs4 import BeautifulSoup
-from time import sleep
+# from time import sleep
+import time
 from random import random
-import log_help
+# import log_help
 import logging
-LG = logging.getLogger(__name__)
-log_help.screen_handler(LG, lv=logging.DEBUG)
+LG = logging.getLogger('main.gfs')
+# # log_help.screen_handler(LG, lv=logging.DEBUG)
 
 fmt = '%d/%m/%Y-%H:%M'
 
@@ -98,15 +100,16 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
    batch = min([min(dates), now])
    LG.info(f"Getting tentative GFS batch for {batch.strftime('%Y%m%d/%H')}")
    batch = get_GFS_calc(batch)
+   base_batch = batch
    LG.info(f"Tentative GFS batch: {batch.strftime('%Y%m%d/%H')}")
    delta = dt.timedelta(hours=6)
    is_data_present = False
    for i_batch in range(4):   # loop for previous GFS batchs
-      batch = batch - i_batch*delta
+      batch = base_batch - i_batch*delta
 
       start = dt.datetime.now()
       waiting = (dt.datetime.now() - start).total_seconds()/60
-      LG.info(f'Is data present: {is_data_present} trying since {waiting:.0f}s ago')
+      LG.info(f'Is data present: {is_data_present} trying since {waiting:.0f}min ago')
       while not is_data_present and waiting < wait4batch:
          waiting = (dt.datetime.now() - start).total_seconds()/60
          LG.info(f'Trying batch: {batch.strftime(fmt)} ({waiting:.0f}/{wait4batch}m)')
@@ -120,7 +123,7 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
          is_data_present = True
          if not is_data_present:
              LG.info('Waiting 60 seconds')
-             sleep(60)
+             time.sleep(60)
 
          # if is_data_present:
          #    # If all data is present break the GFS batchs loop
@@ -153,23 +156,55 @@ def get_files(Params, dates, data_folder='data',wait4batch=40):
    ##    status = download_file(*inp)
    ##    # sleep(1)
    # Parallel option. The server seems to penalize this option
-   npool = 5  # int(min([len(all_inps)/2,10])) # XXX  check depending on ISP
-   LG.debug(f'Starting download with {npool} requests in parallel')
-   pool = Pool(npool)
-   remaining = all_inps
+   # CLAUDE
+   npool = 3
    Ntries = 3
+   LG.debug(f'Starting download with {npool} requests in parallel')
+   remaining = all_inps
    cont = 0
-   # Download until all files are downloaded
-   while len(remaining) > 0 and cont < Ntries:
-      status = pool.starmap(download_file, remaining)
-      remaining = [inp for inp,stat in zip(remaining, status) if not stat]
-      if len(remaining) > 0:
-         LG.warning(f'Missing {len(remaining)}. Retry')
-      else: break
-      #TODO add sleep here
-      cont += 1
+   pool = ThreadPool(npool)
+   try:
+      # Download until all files are downloaded
+      while remaining and cont < Ntries:
+         cont += 1
+         download_func = download_file_stream
+         # download_func = download_file
+         status = pool.starmap(download_func, remaining, chunksize=1)
+         # status = pool.starmap(download_file, remaining, chunksize=1)
+         remaining = [inp for inp, ok in zip(remaining, status) if not ok]
+         if remaining:
+            LG.warning(f'Attempt {cont}/{Ntries}: {len(remaining)} missing')
+            if cont < Ntries:
+               time.sleep(30*cont)   # 30s, 60s, ... #XXX
+   finally:
+      pool.close()
+      pool.join()
+
+   if remaining:
+      LG.error(f'GFS download incomplete after {cont} attempts: {len(remaining)} missing')
+      return False
    LG.info(f'All GFS data downloaded in {cont} iterations')
    return True
+   # YO
+   #npool = 5  # int(min([len(all_inps)/2,10])) # XXX  check depending on ISP
+   #LG.debug(f'Starting download with {npool} requests in parallel')
+   #pool = Pool(npool)
+   #remaining = all_inps
+   #Ntries = 3
+   #cont = 0
+   ## Download until all files are downloaded
+   #while len(remaining) > 0 and cont < Ntries:
+   #   status = pool.starmap(download_file, remaining)
+   #   pool.close()   # no se aceptan más tareas
+   #   pool.join()    # espera a que los workers terminen y salgan
+   #   remaining = [inp for inp,stat in zip(remaining, status) if not stat]
+   #   if len(remaining) > 0:
+   #      LG.warning(f'Missing {len(remaining)}. Retry')
+   #   else: break
+   #   #TODO add sleep here
+   #   cont += 1
+   #LG.info(f'All GFS data downloaded in {cont} iterations')
+   #return True
 
 
 ### Harcoded server data
@@ -178,10 +213,10 @@ def ncep_folder_fname(batch,date):
    returns the correct folder in the server and file name of the file with the
    GFS forecast for day `date` made on day `batch`
    """
-   remote_foler =  f"gfs.{batch.strftime('%Y%m%d/%H')}"
+   remote_folder =  f"gfs.{batch.strftime('%Y%m%d/%H')}"
    ind = int((date-batch).total_seconds()/3600)
    fname = f"gfs.t{batch.strftime('%H')}z.pgrb2.0p25.f{ind:03d}"
-   return remote_foler,fname
+   return remote_folder,fname
 
 
 def URL_subregion(batch,date,leftlon,rightlon,toplat,bottomlat):
@@ -195,12 +230,9 @@ def URL_subregion(batch,date,leftlon,rightlon,toplat,bottomlat):
    folder, fname = ncep_folder_fname(batch,date)
    url = 'https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?'
    LG.debug(f'file={fname}')
-   LG.debug(f'&all_lev=on&all_var=on')
-   LG.debug(f'&subregion=')
-   LG.debug(f'&leftlon={leftlon}')
-   LG.debug(f'&rightlon={rightlon}')
-   LG.debug(f'&toplat={toplat}')
-   LG.debug(f'&bottomlat={bottomlat}')
+   LG.debug(f'&all_lev=on&all_var=on&subregion=')
+   LG.debug(f'&leftlon={leftlon}&rightlon={rightlon}')
+   LG.debug(f'&toplat={toplat}&bottomlat={bottomlat}')
    LG.debug(f'&dir=/{folder}/atmos')
    url += f'file={fname}'
    url += f'&all_lev=on&all_var=on'
@@ -242,22 +274,95 @@ def check_files_http(url,filenames):
     return server_files
 
 
-def download_file(url,fout):
+import time
+
+def download_file_stream(url, fout, max_seconds=1000):
    """
-   Download file from url and store it in fout
+   Download file from url and store it in fout, streaming to disk.
+   Returns True/False
+   max_seconds: [float] total time allowed per file (not per pause between bytes)
    """
-   sleep(5*random())  # to avoid banning
+   time.sleep(5*random())  # to avoid banning
    LG.info(f'Downloading {url}')
-   req = requests.get(url)
-   LG.info(f'Response: {req}')
-   fid = open(fout, 'wb')
-   fid.write(req.content)
-   fid.close()
-   #TODO add check
-   if not os.path.isfile(fout) or os.path.getsize(fout) == 0:
+   tmp = f'{fout}.part'
+   t0 = time.time()
+   try:
+      with requests.get(url, stream=True, timeout=(10, 60)) as req:
+         LG.info(f'Response: {req} ({time.time()-t0:.0f}s until headers)')
+         req.raise_for_status()
+         nbytes, last_log = 0, t0
+         with open(tmp, 'wb') as fid:
+            for chunk in req.iter_content(1 << 20):
+               fid.write(chunk)
+               nbytes += len(chunk)
+               if time.time() - last_log > 15:
+                  LG.info(f'{os.path.basename(fout)}: {nbytes/1e6:.1f} MB, '
+                          f'{time.time()-t0:.0f}s')
+                  last_log = time.time()
+               if time.time() - t0 > max_seconds:
+                  raise TimeoutError(f'exceeded {max_seconds}s')
+      # Integrity: GRIB2 starts with 'GRIB' and ends with '7777'
+      with open(tmp, 'rb') as fid:
+         head = fid.read(4)
+         fid.seek(-4, os.SEEK_END)
+         tail = fid.read(4)
+      if head != b'GRIB' or tail != b'7777':
+         raise ValueError('not a complete GRIB file')
+      os.replace(tmp, fout)   # atomic: fout is never left half-written
+   except Exception as e:
+      LG.warning(f'Failed {url}: {e}')
+      if os.path.exists(tmp):
+         os.remove(tmp)
+      return False
+   LG.info(f'saved in {fout} ({time.time()-t0:.0f}s)')
+   return True
+
+
+
+def download_file(url, fout):
+   """
+   Download file from url and store it in fout. Returns True/False
+   """
+   time.sleep(5*random())  # to avoid banning
+   LG.info(f'Downloading {url}')
+   tmp = f'{fout}.part'
+   try:
+      LG.critical(f'INTENTANDO {url}')
+      LG.critical(f'saving in: {tmp}')
+      req = requests.get(url, timeout=(10, 120))   # (connect, read)
+      LG.info(f'Response: {req}')
+      req.raise_for_status()
+      # The NOMADS filter returns GRIB2; anything else is an error page
+      if req.content[:4] != b'GRIB': #XXX check
+         raise ValueError('response is not a GRIB file')
+      with open(tmp, 'wb') as fid:
+         fid.write(req.content)
+      os.replace(tmp, fout)   # atomic: fout is never left half-written
+   except Exception as e:
+      LG.warning(f'Failed {url}: {e}')
+      if os.path.exists(tmp):
+         os.remove(tmp)
       return False
    LG.info(f'saved in {fout}')
    return True
+
+#def download_file_yo(url,fout):
+#   """
+#   Download file from url and store it in fout
+#   """
+#   time.sleep(5*random())  # to avoid banning
+#   LG.info(f'Downloading {url}')
+#   req = requests.get(url)
+#   LG.info(f'Response: {req}')
+#   with open(fout, 'wb') as fid:
+#   # fid = open(fout, 'wb')
+#      fid.write(req.content)
+#   # fid.close()
+#   #TODO add check
+#   if not os.path.isfile(fout) or os.path.getsize(fout) == 0:
+#      return False
+#   LG.info(f'saved in {fout}')
+#   return True
 
 
 #################################################################################
@@ -281,7 +386,7 @@ def make_login(server,credentials=None,Ntries=10):
          out = True
       except:
          LG.warning(f'Unable to connect to {server} ({cont}/{Ntries})')
-         sleep(1)
+         time.sleep(1)
       cont += 1
    if not out: raise myFTPError('The server cannot be reached')
    LG.debug('Connection successful')

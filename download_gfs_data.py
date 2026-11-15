@@ -2,15 +2,15 @@
 # -*- coding: UTF-8 -*-
 
 import os
-# here = os.path.dirname(os.path.realpath(__file__))
+here = os.path.dirname(os.path.realpath(__file__))
 is_cron = False
 is_cron = bool( os.getenv('RUN_BY_CRON') )
 fmt = '%d/%m/%Y-%H:%M'
 import common
 import datetime as dt
 import gfs
-import logging
-LG = logging.getLogger('main')
+# import logging
+# LG = logging.getLogger('main')
 
 
 def main(fini = 'config.ini'):
@@ -36,18 +36,25 @@ def main(fini = 'config.ini'):
          LG.info(f'Attempt {cont}. Not all files')
          cont += 1
 
+import log_help
+batch = gfs.get_GFS_calc(dt.datetime.now())
+script_path = os.path.realpath(__file__)
+LG, LGp = log_help.batch_logger(script_path, batch, # missing domain
+                               is_cron=is_cron, log_dir=f'{here}/logs')
+
 if __name__ == '__main__':
-################################# LOGGING ####################################
-   import log_help
-   log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
-   # log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
-   lv = logging.DEBUG
-   logging.basicConfig(level=lv,
-                    format='%(asctime)s %(name)s:%(levelname)s-%(message)s',
-                    datefmt='%Y/%m/%d-%H:%M',
-                    filename = log_file, filemode='w')
-   LG = logging.getLogger('main')
-   if not is_cron: log_help.screen_handler(LG, lv=lv)
-   LG.info(f'Starting: {__file__}')
-##############################################################################
+################################## LOGGING ####################################
+#   import log_help
+#   log_file = '.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+#   # log_file = here+'/'+'.'.join( __file__.split('/')[-1].split('.')[:-1] ) + '.log'
+#   lv = logging.DEBUG
+#   logging.basicConfig(level=lv,
+#                    format='%(asctime)s %(name)s:%(levelname)s-%(message)s',
+#                    datefmt='%Y/%m/%d-%H:%M',
+#                    filename = log_file, filemode='w')
+#   LG = logging.getLogger('main')
+#   if not is_cron: log_help.screen_handler(LG, lv=lv)
+#   LG.info(f'Starting: {__file__}')
+###############################################################################
+
    main()
